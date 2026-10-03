@@ -1,0 +1,25 @@
+{
+  "name": "@scamshield/button",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "FREE-WILi bridge: button press to /protect, long press to arm_guard, live state on the device",
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "keyboard": "tsx src/index.ts --keyboard",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@scamshield/bindings": "workspace:*",
+    "@scamshield/core": "workspace:*",
+    "dotenv": "^18.0.5",
+    "spacetimedb": "2.10.*",
+    "undici": "6"
+  },
+  "optionalDependencies": {
+    "serialport": "^13.0.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15"
+  }
+}

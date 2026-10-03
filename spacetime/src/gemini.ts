@@ -3,7 +3,8 @@
 import { parseAnalyzerOutput, TACTICS, type AnalyzerOutput } from '@scamshield/core';
 import { httpJson, type Http } from './http';
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash';
+// A fast, stable Flash-Lite model keeps a red flag under 5 seconds from phrase to UI. Override with GEMINI_MODEL.
+export const DEFAULT_GEMINI_MODEL = 'gemini-3.5-flash-lite';
 
 const SYSTEM_PROMPT = `You analyze a live phone call for a bank's scam-call guard. The bank customer is on the phone with a caller who may be a scammer.
 
