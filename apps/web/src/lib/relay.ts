@@ -3,11 +3,14 @@ const RELAY_URL = import.meta.env.VITE_RELAY_URL ?? `${window.location.protocol}
 
 export interface RelayReply {
   ok: boolean;
+  score?: number;
+  state?: string;
+  ms?: number;
   message?: string;
   error?: string;
 }
 
-export async function postRelay(path: "/protect" | "/simulate", body: Record<string, unknown>): Promise<RelayReply> {
+export async function postRelay(path: "/protect" | "/simulate" | "/type", body: Record<string, unknown>): Promise<RelayReply> {
   try {
     const res = await fetch(`${RELAY_URL}${path}`, {
       method: "POST",

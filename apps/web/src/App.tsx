@@ -3,6 +3,7 @@ import { useSpacetimeDB, useTable } from "spacetimedb/react";
 import { AccountPanel } from "./components/AccountPanel";
 import { HeldPanel } from "./components/HeldPanel";
 import { ShieldPanel } from "./components/ShieldPanel";
+import { TryPage } from "./components/TryPage";
 
 function Logo() {
   return (
@@ -47,12 +48,17 @@ export function App() {
         </p>
       )}
 
-      {/* Three panels side by side at 1024px and wider; stacked below that. */}
-      <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
-        <AccountPanel />
-        <ShieldPanel />
-        <HeldPanel />
-      </main>
+      {/* TEMPORARY: /try is a test page for typing lines at the analyzer. */}
+      {window.location.pathname === "/try" ? (
+        <TryPage />
+      ) : (
+        /* Three panels side by side at 1024px and wider; stacked below that. */
+        <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+          <AccountPanel />
+          <ShieldPanel />
+          <HeldPanel />
+        </main>
+      )}
 
       <footer className="mt-6 text-center text-xs text-muted">Demo app. Mock data from the Capital One Nessie hackathon API.</footer>
     </div>

@@ -2,6 +2,7 @@ import Fastify from "fastify";
 import { connect, db, isConnected, refreshAccount } from "./db";
 import { env } from "./env";
 import { createMediaServer, liveConfigProblem, ringCustomer, validTwilioSignature, voiceTwiml } from "./live";
+import { CallSession, startCall } from "./session";
 import { DEFAULT_SCENARIO, cancelSimulation, listScenarios, loadFixture, simulate } from "./simulate";
 
 const REFRESH_INTERVAL_MS = 30_000;
@@ -63,6 +64,39 @@ app.post<{ Body: SimulateBody | null }>("/protect", async (req, reply) => {
   if (!result.ok) return reply.code(503).send(result);
   console.log(`[relay] /protect: ringing the customer (Twilio call ${result.callSid})`);
   return { ok: true, callSid: result.callSid, message: "Your phone is ringing. Answer, then tap Merge." };
+});
+
+// TEMPORARY: backs the /try page. Type a line as if it had been transcribed
+// from a call and see what the analyzer makes of it. Remove with the page.
+const typedSessions = new Map<bigint, CallSession>();
+
+app.post<{ Body: { text?: string; speaker?: string } | null }>("/type", async (req, reply) => {
+  const text = (req.body?.text ?? "").trim();
+  const speaker = req.body?.speaker === "customer" ? "customer" : "caller";
+  if (!text) return reply.code(400).send({ ok: false, error: "Type something first." });
+  if (!isConnected()) return reply.code(503).send({ ok: false, error: "The relay is not connected to SpacetimeDB yet." });
+
+  const conn = db();
+  let callId: bigint | null = null;
+  for (const row of conn.db.call.iter()) if (row.endedAt === undefined && (callId === null || row.id > callId)) callId = row.id;
+  if (callId === null) {
+    cancelSimulation();
+    callId = await startCall(conn, "");
+  }
+  let session = typedSessions.get(callId);
+  if (!session) {
+    // No 3 second spacing here: each typed line is analyzed straight away.
+    session = new CallSession(conn, callId, 0);
+    typedSessions.set(callId, session);
+  }
+
+  const started = Date.now();
+  await session.addLine(speaker, text, Date.now() - session.startedAt);
+  // A customer line can matter too (reading out an account number), so both speakers trigger analysis.
+  if (speaker === "customer") session.requestAnalysis();
+  await session.idle();
+  const row = conn.db.call.id.find(callId);
+  return { ok: true, callId: callId.toString(), score: row?.score ?? 0, state: row?.state ?? "listening", ms: Date.now() - started };
 });
 
 app.post<{ Body: Record<string, string> | null }>("/twilio/voice", async (req, reply) => {
