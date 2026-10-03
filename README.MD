@@ -79,12 +79,43 @@ Other scenarios are in the dropdown next to **Simulate call**: fake fraud alert,
 | `pnpm acceptance` | End-to-end check of all four scenarios and the held transfer, against a running `pnpm dev` |
 | `pnpm seed` | Create Margaret in the real Nessie API and write `.seed.json` (needs `NESSIE_KEY`) |
 | `pnpm --filter @scamshield/button keyboard` | Button bridge without the hardware: Enter is a press, `l` + Enter is a long press |
+| `pnpm mobile` | Start the iOS app's dev server (Expo). See "iOS app" below. |
 
 **Real APIs:** copy `.env.example` to `.env`, set `MOCK=0` and the keys, run `pnpm seed` once, then `pnpm dev`. With `MOCK=0`, call analysis needs `GEMINI_API_KEY`: without it calls stay at Listening. For live calls, run `ngrok http 8787` and put the https URL in `PUBLIC_URL`.
+
+## iOS app
+
+`apps/mobile` is the same bank as a phone app: React Native with Expo (SDK 57), three tabs (Account, ScamShield, Held). It reads the same SpacetimeDB tables and calls the same reducers and procedures as the web dashboard, so both stay in sync live.
+
+**On an iPhone, with Expo Go** (no Mac needed):
+
+1. Install **Expo Go** from the App Store. Put the phone on the same Wi-Fi as your computer.
+2. Start the demo server so the phone can reach it:
+
+   ```bash
+   pnpm dev --lan
+   ```
+
+3. In a second terminal, start the app and scan the QR code with the iPhone camera:
+
+   ```bash
+   pnpm mobile
+   ```
+
+The app finds the database (port 3000) and relay (port 8787) on the machine that served it. To point it somewhere else, set `EXPO_PUBLIC_SPACETIME_URI` and `EXPO_PUBLIC_RELAY_URL` before `pnpm mobile`.
+
+`--lan` opens the demo database, which has no login, to everyone on the network. Use it on a network you trust.
+
+**On WSL2,** the phone cannot reach WSL's ports by default. Set `networkingMode=mirrored` under `[wsl2]` in `%UserProfile%\.wslconfig`, run `wsl --shutdown`, and allow ports 3000, 8081, and 8787 through the Windows firewall.
+
+**An installable build** needs Apple's tools: `npx eas-cli@latest build --platform ios` (cloud build, needs an Apple Developer account), or `npx expo run:ios` on a Mac with Xcode.
+
+**To preview without a phone:** `pnpm --filter @scamshield/mobile web` runs the same app in a browser.
 
 ## Repo layout
 
 ```
+apps/mobile     iOS app: Expo + React Native, same tables and procedures as the dashboard
 apps/web        Dashboard: Vite + React + Tailwind, renders SpacetimeDB table subscriptions
 apps/relay      Fastify relay: /simulate, /protect, Twilio webhook and media stream, ElevenLabs STT
 apps/button     FREE-WILi bridge (USB serial), with a keyboard fallback
@@ -106,6 +137,7 @@ scripts         dev, seed, acceptance
 | M8 live calls (Twilio + ElevenLabs) | Written, not run: needs Twilio and ElevenLabs keys and a public URL |
 | M9 FREE-WILi button | Bridge works in keyboard mode. The serial protocol follows Intrepid's Python library and has not been tried on a device. |
 | M10 stretch (whisper, family alert, voice detection, `/ops`) | Not started |
+| iOS app (not in the original spec) | Built with Expo. The iOS bundle builds, and the full demo was run through Expo's web target at iPhone size. It has not been run on an iPhone or a simulator: that needs a phone with Expo Go, or a Mac. |
 
 Places where the spec was ambiguous are marked in the code with `// SPEC-QUESTION:`.
 

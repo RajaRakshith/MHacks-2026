@@ -5,10 +5,12 @@
  *
  *   --publish-only   stop after publishing and generating bindings
  *   --reset          publish with --delete-data: wipes calls, holds, and mock transfers
+ *   --lan            let other devices on the network reach the database (for the phone app)
  */
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { networkInterfaces } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,6 +18,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = new Set(process.argv.slice(2));
 const publishOnly = args.has("--publish-only");
 const reset = args.has("--reset");
+const lan = args.has("--lan");
 
 // Minimal .env reader: this script runs before any dependency is guaranteed to be installed.
 function readEnv() {
@@ -110,13 +113,15 @@ async function main() {
   // 1. SpacetimeDB
   if (await ping()) {
     console.log(`[dev] SpacetimeDB is already running at ${httpUrl}`);
+    if (lan) console.log("[dev] --lan only applies when this script starts SpacetimeDB. If the phone cannot connect, stop the running one and start again.");
   } else if (!isLocal) {
     console.error(`[dev] Cannot reach SpacetimeDB at ${httpUrl}.`);
     process.exit(1);
   } else {
-    console.log(`[dev] Starting local SpacetimeDB on ${host.host}`);
-    // Bound to localhost: this is a demo database with no login.
-    const child = spawn("spacetime", ["start", "--listen-addr", `127.0.0.1:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: "ignore", detached: true });
+    // Bound to localhost unless --lan is given: this is a demo database with no login.
+    const bind = lan ? "0.0.0.0" : "127.0.0.1";
+    console.log(`[dev] Starting local SpacetimeDB on ${bind}:${host.port || 3000}`);
+    const child = spawn("spacetime", ["start", "--listen-addr", `${bind}:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: "ignore", detached: true });
     child.on("exit", (code) => {
       if (!shuttingDown) {
         console.error(`[dev] spacetime start exited (${code ?? "signal"}).`);
@@ -163,6 +168,15 @@ async function main() {
   const token = /auth token[^\n]*\bis\s+(\S+)/i.exec(run("spacetime", ["login", "show", "--token"], { quiet: true }).output)?.[1];
   const mock = env.MOCK === undefined || env.MOCK === "" || /^(1|true|yes|on)$/i.test(env.MOCK);
   console.log(`[dev] Mode: ${mock ? "MOCK (fixtures only, no API keys needed)" : "LIVE"}`);
+
+  if (lan) {
+    const addresses = Object.values(networkInterfaces())
+      .flat()
+      .filter((a) => a && a.family === "IPv4" && !a.internal)
+      .map((a) => a.address);
+    console.log(`[dev] LAN mode: anyone on this network can reach the demo database. This machine: ${addresses.join(", ") || "no network address found"}`);
+    console.log("[dev] Start the phone app in another terminal with `pnpm mobile`.");
+  }
 
   start("relay", "pnpm", ["--filter", "@scamshield/relay", "dev"], token ? { SPACETIME_TOKEN: token } : {});
   start("web", "pnpm", ["--filter", "@scamshield/web", "dev"], { VITE_SPACETIME_URI: uri, VITE_SPACETIME_DB: database });

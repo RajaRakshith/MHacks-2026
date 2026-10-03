@@ -16,11 +16,18 @@
     "acceptance": "tsx scripts/acceptance.ts",
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
-    "build": "pnpm -r --if-present build"
+    "build": "pnpm -r --if-present build",
+    "mobile": "pnpm --filter @scamshield/mobile start"
   },
   "devDependencies": {
     "@types/node": "20",
     "tsx": "^4.23.15",
     "typescript": "~5.6.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    }
   }
 }

@@ -1,0 +1,36 @@
+{
+  "name": "@scamshield/mobile",
+  "version": "0.1.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@expo/vector-icons": "^15.0.2",
+    "@scamshield/bindings": "workspace:*",
+    "@scamshield/core": "workspace:*",
+    "expo": "~57.0.26",
+    "expo-constants": "~57.0.20",
+    "expo-font": "~57.0.4",
+    "expo-linking": "~57.0.11",
+    "expo-router": "~57.0.24",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-screens": "~4.26.0",
+    "react-native-web": "^0.21.2",
+    "spacetimedb": "2.10.*"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "typecheck": "tsc --noEmit",
+    "export:ios": "expo export --platform ios --output-dir dist"
+  },
+  "private": true,
+  "description": "C1 Mockup iOS app (Expo / React Native)"
+}
