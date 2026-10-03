@@ -1,0 +1,6 @@
+{
+  "_id": "mock-cust-margaret",
+  "first_name": "Margaret",
+  "last_name": "Hale",
+  "address": { "street_number": "418", "street_name": "Linden Street", "city": "Ann Arbor", "state": "MI", "zip": "48104" }
+}

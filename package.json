@@ -1,0 +1,26 @@
+{
+  "name": "scamshield",
+  "private": true,
+  "version": "0.1.0",
+  "description": "ScamShield: Harbor Bank demo dashboard with a built-in scam-call guard (MHacks 2026)",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "reset": "node scripts/dev.mjs --reset --publish-only",
+    "module:publish": "node scripts/dev.mjs --publish-only",
+    "seed": "tsx scripts/seed.ts",
+    "acceptance": "tsx scripts/acceptance.ts",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build"
+  },
+  "devDependencies": {
+    "@types/node": "20",
+    "tsx": "^4.23.15",
+    "typescript": "~5.6.2"
+  }
+}

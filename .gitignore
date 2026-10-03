@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.seed.json
+key.txt
+*.log
+.DS_Store
+.vite/
+coverage/
+spacetime.local.json

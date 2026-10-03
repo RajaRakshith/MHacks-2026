@@ -1,0 +1,5 @@
+[
+  { "_id": "mock-bill-dte", "status": "recurring", "payee": "DTE Energy", "nickname": "Electric and gas", "creation_date": "@today-90", "recurring_date": 12, "upcoming_payment_date": "@today+9", "payment_amount": 94, "account_id": "mock-acct-margaret" },
+  { "_id": "mock-bill-water", "status": "pending", "payee": "Ann Arbor Water", "nickname": "Water", "creation_date": "@today-10", "payment_date": "@today+5", "payment_amount": 38, "account_id": "mock-acct-margaret" },
+  { "_id": "mock-bill-rent", "status": "completed", "payee": "Oakwood Apartments", "nickname": "Rent", "creation_date": "@today-30", "payment_date": "@today-2", "payment_amount": 1100, "account_id": "mock-acct-margaret" }
+]

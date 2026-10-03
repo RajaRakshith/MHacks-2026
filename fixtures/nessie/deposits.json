@@ -1,0 +1,5 @@
+[
+  { "_id": "mock-dep-1", "type": "deposit", "transaction_date": "@today-33", "status": "executed", "medium": "balance", "amount": 1650, "description": "Social Security" },
+  { "_id": "mock-dep-2", "type": "deposit", "transaction_date": "@today-17", "status": "executed", "medium": "balance", "amount": 420, "description": "Pension, Washtenaw County Schools" },
+  { "_id": "mock-dep-3", "type": "deposit", "transaction_date": "@today-3", "status": "executed", "medium": "balance", "amount": 1650, "description": "Social Security" }
+]

@@ -1,0 +1,20 @@
+{
+  "scenario": "refund-overpayment",
+  "callerNumber": "+13135550142",
+  "lines": [
+    { "atMs": 0, "speaker": "caller", "text": "Hello, is this Margaret? This is Daniel from the Harbor Bank fraud department.",
+      "labels": { "tactics": ["bank_impersonation"], "claims": [] } },
+    { "atMs": 5000, "speaker": "customer", "text": "Yes, this is Margaret. Is something wrong?" },
+    { "atMs": 8500, "speaker": "caller", "text": "We deposited $900 into your account by mistake this morning.",
+      "labels": { "tactics": ["refund_overpayment"], "claims": [{ "kind": "deposit", "amount": 900 }] } },
+    { "atMs": 13500, "speaker": "customer", "text": "Oh dear. I didn't notice that." },
+    { "atMs": 16500, "speaker": "caller", "text": "It has to be sent back today, or we will have to freeze your account.",
+      "labels": { "tactics": ["urgency"], "claims": [] } },
+    { "atMs": 22000, "speaker": "customer", "text": "How do I send it back?" },
+    { "atMs": 25000, "speaker": "caller", "text": "Stay on the line with me. Open your banking app and wire $2,000 to Account Services. We will return the difference once the error clears.",
+      "labels": { "tactics": ["stay_on_line", "unusual_payment"], "claims": [] } },
+    { "atMs": 33000, "speaker": "caller", "text": "Please don't mention this to anyone at the branch. It would only slow down the reversal.",
+      "labels": { "tactics": ["secrecy"], "claims": [] } },
+    { "atMs": 38500, "speaker": "customer", "text": "All right. I'm opening the app now." }
+  ]
+}

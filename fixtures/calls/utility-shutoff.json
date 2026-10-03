@@ -1,0 +1,18 @@
+{
+  "scenario": "utility-shutoff",
+  "callerNumber": "+17345550117",
+  "lines": [
+    { "atMs": 0, "speaker": "caller", "text": "This is the DTE Energy disconnection department calling for Margaret Hale.",
+      "labels": { "tactics": [], "claims": [] } },
+    { "atMs": 4500, "speaker": "caller", "text": "Your account shows a past-due bill of $412.",
+      "labels": { "tactics": [], "claims": [{ "kind": "bill", "payee": "DTE Energy", "amount": 412, "overdue": true }] } },
+    { "atMs": 9500, "speaker": "customer", "text": "That doesn't sound right. My bill is usually under a hundred dollars." },
+    { "atMs": 13500, "speaker": "caller", "text": "A technician is scheduled to shut off your power in 45 minutes unless it is paid.",
+      "labels": { "tactics": ["urgency"], "claims": [] } },
+    { "atMs": 19000, "speaker": "caller", "text": "The only way to stop it today is to pay with gift cards. Buy four $100 cards at the nearest store and read me the numbers.",
+      "labels": { "tactics": ["unusual_payment"], "claims": [] } },
+    { "atMs": 26500, "speaker": "caller", "text": "Stay on the phone with me while you drive there, and don't tell the cashier what the cards are for.",
+      "labels": { "tactics": ["stay_on_line", "secrecy"], "claims": [] } },
+    { "atMs": 32500, "speaker": "customer", "text": "I think I should call DTE myself first." }
+  ]
+}
