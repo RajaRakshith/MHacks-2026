@@ -1,0 +1,24 @@
+{
+  "name": "scamshield",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "spacetimedb",
+    "worker",
+    "server"
+  ],
+  "scripts": {
+    "spacetime:dev": "spacetime dev --yes",
+    "spacetime:generate": "spacetime generate --yes --env dev",
+    "spacetime:publish:local": "spacetime publish --yes --env dev",
+    "spacetime:publish:cloud": "spacetime publish --yes scamshield",
+    "server:dev": "npm run dev --workspace=server",
+    "worker:dev": "npm run dev --workspace=worker",
+    "worker:build": "npm run build --workspace=worker"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "~5.6.2"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "database": "scamshield",
+  "module-path": "spacetimedb",
+  "server": "maincloud",
+  "generate": [
+    {
+      "language": "typescript",
+      "out-dir": "worker/src/module_bindings"
+    }
+  ],
+  "dev": {
+    "run": "npm run worker:dev"
+  }
+}
