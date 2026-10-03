@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
-  claimKey, digitsMatch, hashLast4, last4Of, mergeAnalyzerOutputs, parseAnalyzerOutput, resolveFixtureDates,
+  availableBalance, claimKey, digitsMatch, hashLast4, last4Of, mergeAnalyzerOutputs, parseAnalyzerOutput, resolveFixtureDates,
   scoreCall, stateForScore, verifyBill, verifyCharge, verifyClaim, verifyDeposit,
   type AccountData, type CallFixture, type NessieAccount, type NessieBill, type NessieDeposit, type NessieMerchant,
   type NessiePurchase, type NessieWithdrawal, type ShieldState, type Tactic, type Verdict,
@@ -20,6 +20,12 @@ const purchases = nessie<NessiePurchase[]>("purchases");
 const bills = nessie<NessieBill[]>("bills");
 const merchantNames = Object.fromEntries(nessie<NessieMerchant[]>("merchants").map((m) => [m._id, m.name]));
 const data: AccountData = { account, customer: null, deposits, withdrawals, purchases, bills, transfers: [], merchantNames };
+
+describe("mock fixtures", () => {
+  it("add up to Margaret's $8,400 balance", () => {
+    expect(availableBalance(data)).toBe(8400);
+  });
+});
 
 describe("verifyDeposit", () => {
   it("is false when no such deposit exists, with the spec's evidence sentence", () => {

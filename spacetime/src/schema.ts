@@ -168,6 +168,8 @@ const mockTxn = table(
   { name: 'mock_txn' },
   {
     id: t.u64().primaryKey().autoInc(),
+    // transfer | withdrawal
+    kind: t.string(),
     date: t.string(),
     description: t.string(),
     amount: t.f64(),

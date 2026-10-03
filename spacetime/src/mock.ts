@@ -13,6 +13,8 @@ import reportedNumbers from '../../fixtures/reported-numbers.json';
 
 export interface MockTxn {
   id: bigint;
+  /** transfer | withdrawal */
+  kind: string;
   date: string;
   description: string;
   amount: number;
@@ -34,13 +36,19 @@ export function mockAccountData(nowMs: number, sent: readonly MockTxn[]): Accoun
     },
     nowMs
   );
-  const total = sent.reduce((sum, t) => sum + t.amount, 0);
+  // Same shapes the live API returns. As there, `account.balance` is the opening
+  // balance: the dashboard balance is that plus the activity (availableBalance).
+  const sentTransfers = sent.filter((t) => t.kind === 'transfer');
+  const sentWithdrawals = sent.filter((t) => t.kind !== 'transfer');
   return {
     ...base,
-    account: { ...base.account, balance: base.account.balance - total },
     withdrawals: [
       ...base.withdrawals,
-      ...sent.map((t) => ({ _id: `mock-sent-${t.id}`, transaction_date: t.date, status: 'executed', medium: 'balance', amount: t.amount, description: t.description })),
+      ...sentWithdrawals.map((t) => ({ _id: `mock-sent-${t.id}`, transaction_date: t.date, status: 'completed', medium: 'balance', amount: t.amount, description: t.description })),
+    ],
+    transfers: [
+      ...base.transfers,
+      ...sentTransfers.map((t) => ({ id: `mock-sent-${t.id}`, transaction_date: t.date, status: 'completed', amount: t.amount, description: t.description })),
     ],
     merchantNames: Object.fromEntries((merchants as NessieMerchant[]).map((m) => [m._id, m.name])),
   };

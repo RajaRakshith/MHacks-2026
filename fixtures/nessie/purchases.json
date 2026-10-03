@@ -2,5 +2,5 @@
   { "_id": "mock-pur-1", "type": "merchant", "merchant_id": "mock-mer-kroger", "purchase_date": "@today-11", "status": "executed", "medium": "balance", "amount": 72.18, "description": "Groceries" },
   { "_id": "mock-pur-2", "type": "merchant", "merchant_id": "mock-mer-pharmacy", "purchase_date": "@today-6", "status": "executed", "medium": "balance", "amount": 18, "description": "Prescription copay" },
   { "_id": "mock-pur-3", "type": "merchant", "merchant_id": "mock-mer-kroger", "purchase_date": "@today-4", "status": "executed", "medium": "balance", "amount": 64.52, "description": "Groceries" },
-  { "_id": "mock-pur-4", "type": "merchant", "merchant_id": "mock-mer-hardware", "purchase_date": "@today-1", "status": "executed", "medium": "balance", "amount": 23.4, "description": "Garden supplies" }
+  { "_id": "mock-pur-4", "type": "merchant", "merchant_id": "mock-mer-hardware", "purchase_date": "@today-1", "status": "executed", "medium": "balance", "amount": 23.3, "description": "Garden supplies" }
 ]

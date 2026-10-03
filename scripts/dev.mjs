@@ -39,11 +39,22 @@ const isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(host.hostname);
 const children = [];
 let shuttingDown = false;
 
+// Each child runs in its own process group, so stopping it also stops what it
+// started (pnpm -> tsx -> node). Killing only the child would leave those running.
+function stop(child) {
+  if (child.exitCode !== null || child.pid === undefined) return;
+  try {
+    process.kill(-child.pid, "SIGTERM");
+  } catch {
+    child.kill("SIGTERM");
+  }
+}
+
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
-  for (const child of children) if (!child.killed) child.kill("SIGTERM");
-  setTimeout(() => process.exit(code), 300);
+  for (const child of children) stop(child);
+  setTimeout(() => process.exit(code), 400);
 }
 process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
@@ -60,7 +71,7 @@ function prefixed(name, stream, target) {
 }
 
 function start(name, command, commandArgs, extraEnv = {}) {
-  const child = spawn(command, commandArgs, { cwd: ROOT, env: { ...process.env, ...extraEnv }, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn(command, commandArgs, { cwd: ROOT, env: { ...process.env, ...extraEnv }, stdio: ["ignore", "pipe", "pipe"], detached: true });
   prefixed(name, child.stdout, process.stdout);
   prefixed(name, child.stderr, process.stderr);
   child.on("exit", (code) => {
@@ -105,7 +116,7 @@ async function main() {
   } else {
     console.log(`[dev] Starting local SpacetimeDB on ${host.host}`);
     // Bound to localhost: this is a demo database with no login.
-    const child = spawn("spacetime", ["start", "--listen-addr", `127.0.0.1:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: "ignore" });
+    const child = spawn("spacetime", ["start", "--listen-addr", `127.0.0.1:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: "ignore", detached: true });
     child.on("exit", (code) => {
       if (!shuttingDown) {
         console.error(`[dev] spacetime start exited (${code ?? "signal"}).`);

@@ -34,13 +34,19 @@ export interface NessieWithdrawal {
   description?: string;
 }
 
+/**
+ * The live API lists transfers as { id, transaction_date, status, amount,
+ * description }: `id` rather than `_id`, and no payer or payee. The older
+ * shape with `_id`, `payer_id`, and `payee_id` is accepted too.
+ */
 export interface NessieTransfer {
-  _id: string;
+  _id?: string;
+  id?: string;
   transaction_date?: string;
   status?: string;
   medium?: string;
-  payer_id: string;
-  payee_id: string;
+  payer_id?: string;
+  payee_id?: string;
   amount: number;
   description?: string;
 }
@@ -154,15 +160,38 @@ export function formatUsd(amount: number): string {
   return `${amount < 0 ? "-" : ""}$${grouped}${frac ? `.${frac}` : ""}`;
 }
 
+const live = (status: string | undefined): boolean => status !== "cancelled";
+
+/** A transfer is money out unless it names this account as the payee. */
+const isIncoming = (t: NessieTransfer, accountId: string): boolean => t.payee_id === accountId;
+
+/**
+ * What the customer can spend. The live Nessie API never changes an
+ * account's `balance` when deposits, withdrawals, purchases, or transfers are
+ * posted, so `balance` is treated as the opening balance and the activity is
+ * applied on top of it.
+ */
+// SPEC-QUESTION: the spec reads the balance straight from GET /accounts/{id}.
+// Done that way, money sent from the dashboard would never lower the balance.
+export function availableBalance(data: AccountData): number {
+  let total = data.account.balance;
+  for (const d of data.deposits) if (live(d.status)) total += d.amount;
+  for (const w of data.withdrawals) if (live(w.status)) total -= w.amount;
+  for (const p of data.purchases) if (live(p.status)) total -= p.amount;
+  for (const t of data.transfers) if (live(t.status)) total += isIncoming(t, data.account._id) ? t.amount : -t.amount;
+  return Math.round(total * 100) / 100;
+}
+
 /**
  * Deposits, withdrawals, transfers, and purchases as one list, newest first.
- * Nessie dates have day precision; within a day, later API entries count as newer.
+ * Nessie dates only have day precision and the API returns lists in no
+ * particular order, so within a day: rows not seen before come first, then
+ * rows in the order they already had (`known`: id -> previous position).
  */
-export function buildActivity(data: AccountData, limit = 25): ActivityItem[] {
+export function buildActivity(data: AccountData, limit = 25, known?: ReadonlyMap<string, number>): ActivityItem[] {
   const accountId = data.account._id;
   const rows: { item: ActivityItem; order: number }[] = [];
   let order = 0;
-  const live = (status: string | undefined): boolean => status !== "cancelled";
 
   for (const d of data.deposits) {
     if (!live(d.status)) continue;
@@ -179,13 +208,16 @@ export function buildActivity(data: AccountData, limit = 25): ActivityItem[] {
   }
   for (const t of data.transfers) {
     if (!live(t.status)) continue;
-    const outgoing = t.payer_id === accountId;
-    rows.push({ order: order++, item: { id: t._id, kind: "transfer", date: t.transaction_date ?? "", description: t.description || (outgoing ? "Transfer out" : "Transfer in"), amount: outgoing ? -t.amount : t.amount } });
+    const incoming = isIncoming(t, accountId);
+    const id = t._id ?? t.id ?? `transfer-${order}`;
+    rows.push({ order: order++, item: { id, kind: "transfer", date: t.transaction_date ?? "", description: t.description || (incoming ? "Transfer in" : "Transfer out"), amount: incoming ? t.amount : -t.amount } });
   }
 
+  const position = (id: string): number => known?.get(id) ?? -1;
   rows.sort((a, b) => {
     if (a.item.date !== b.item.date) return a.item.date < b.item.date ? 1 : -1;
-    return b.order - a.order;
+    const byKnown = position(a.item.id) - position(b.item.id);
+    return byKnown !== 0 ? byKnown : b.order - a.order;
   });
   return rows.slice(0, limit).map((r) => r.item);
 }

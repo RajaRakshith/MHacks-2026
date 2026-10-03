@@ -25,6 +25,9 @@ const url = (env: NessieEnv, path: string): string => `${env.base.replace(/\/+$/
 function getList<T>(http: Http, env: NessieEnv, path: string): { ok: boolean; items: T[]; error?: string } {
   const res = httpJson(http, url(env, path));
   if (res.ok && Array.isArray(res.json)) return { ok: true, items: res.json as T[] };
+  // An empty list can come back as 404 "No transfers found for this account".
+  // A route that does not exist answers 403 instead, so this still works as the probe.
+  if (res.status === 404 && /\bno\b.*\bfound\b/i.test(res.text)) return { ok: true, items: [] };
   return { ok: false, items: [], error: res.error ?? `GET ${path} did not return a list` };
 }
 
@@ -95,12 +98,11 @@ export function fetchForClaims(
 }
 
 export interface SendMoney {
+  /** Whole dollars: Nessie drops cents. */
   amount: number;
   /** YYYY-MM-DD */
   date: string;
   payeeName: string;
-  /** Empty when the payee has no Nessie account. */
-  payeeAccountId: string;
   cash: boolean;
   supportsTransfers: boolean;
 }
@@ -111,21 +113,26 @@ export function withdrawalDescription(payeeName: string, cash: boolean): string 
 }
 
 /**
- * The only place money leaves. A real transfer when the API supports it and
- * the payee has a Nessie account; otherwise a withdrawal described as "Transfer to <payee>".
+ * The only place money leaves. A transfer when the API supports transfers;
+ * otherwise a withdrawal described as "Transfer to <payee>". Cash is always a withdrawal.
+ *
+ * Checked against the live API: a transfer takes no payee (`payee_id` and
+ * `medium` are rejected), so the payee lives in the description either way.
+ * `status` must be sent: a withdrawal saved without one makes the account's
+ * withdrawal list fail from then on.
  */
 export function sendMoney(http: Http, env: NessieEnv, send: SendMoney): { ok: true; viaWithdrawal: boolean } | { ok: false; error: string } {
-  const asTransfer = !send.cash && send.supportsTransfers && send.payeeAccountId !== '';
+  const asTransfer = !send.cash && send.supportsTransfers;
   const res = asTransfer
     ? httpJson(http, url(env, `/accounts/${env.accountId}/transfers`), {
         method: 'POST',
-        body: { medium: 'balance', payee_id: send.payeeAccountId, amount: send.amount, transaction_date: send.date, description: `Transfer to ${send.payeeName}` },
+        body: { transaction_date: send.date, status: 'completed', amount: send.amount, description: `Transfer to ${send.payeeName}` },
       })
     : httpJson(http, url(env, `/accounts/${env.accountId}/withdrawals`), {
         method: 'POST',
-        body: { medium: 'balance', transaction_date: send.date, amount: send.amount, description: withdrawalDescription(send.payeeName, send.cash) },
+        body: { medium: 'balance', transaction_date: send.date, status: 'completed', amount: send.amount, description: withdrawalDescription(send.payeeName, send.cash) },
       });
   // Create calls may return a plain string instead of the new object, so only the status is checked.
   if (!res.ok) return { ok: false, error: res.error ?? 'Nessie rejected the payment' };
-  return { ok: true, viaWithdrawal: !asTransfer };
+  return { ok: true, viaWithdrawal: !send.cash && !asTransfer };
 }

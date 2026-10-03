@@ -94,6 +94,7 @@ export type Hold = __Infer<typeof Hold>;
 
 export const MockTxn = __t.object("MockTxn", {
   id: __t.u64(),
+  kind: __t.string(),
   date: __t.string(),
   description: __t.string(),
   amount: __t.f64(),

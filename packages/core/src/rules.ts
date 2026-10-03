@@ -38,6 +38,17 @@ export function isTrustedPayee(payee: { trusted: boolean; timesPaid: number } | 
   return payee.trusted || payee.timesPaid >= TRUSTED_AFTER_PAYMENTS;
 }
 
+/**
+ * Why an amount cannot be sent, or null when it can. Nessie stores whole
+ * dollars and silently drops the cents, so cents are refused up front.
+ */
+export function amountProblem(amount: number, balance: number | undefined): string | null {
+  if (!Number.isFinite(amount) || amount <= 0) return "Enter an amount greater than $0.";
+  if (!Number.isInteger(amount)) return "Enter a whole-dollar amount. This account cannot send cents.";
+  if (balance !== undefined && amount > balance) return "Not enough money in the account.";
+  return null;
+}
+
 export function isGuardArmed(armedUntilMs: number, nowMs: number): boolean {
   return armedUntilMs > nowMs;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildActivity, buildBills, claimKey, describeClaim, formatUsd, mergeAnalyzerOutputs, parseAnalyzerJson, parseAnalyzerOutput,
+  availableBalance, buildActivity, buildBills, claimKey, describeClaim, formatUsd, mergeAnalyzerOutputs, parseAnalyzerJson, parseAnalyzerOutput,
   redactAnalyzerOutput, redactDigits, resolveFixtureDates, sha256Hex, transcriptWindow, type AccountData,
 } from "../src";
 
@@ -127,6 +127,32 @@ describe("dashboard rows", () => {
       ["w1", -60, "ATM withdrawal"],
     ]);
     expect(buildActivity(data, 2)).toHaveLength(2);
+  });
+
+  it("buildActivity handles the live transfer shape: `id`, no payer or payee, always money out", () => {
+    const liveShape: AccountData = { ...data, deposits: [], withdrawals: [], purchases: [], transfers: [{ id: "x1", amount: 12, transaction_date: "2026-10-03", status: "completed", description: "Transfer to Nora" }] };
+    expect(buildActivity(liveShape)).toEqual([{ id: "x1", kind: "transfer", date: "2026-10-03", description: "Transfer to Nora", amount: -12 }]);
+  });
+
+  it("buildActivity puts rows it has not seen before first within a day, then keeps the known order", () => {
+    const sameDay: AccountData = {
+      ...data, deposits: [], purchases: [], transfers: [],
+      withdrawals: [
+        { _id: "new", amount: 1, transaction_date: "2026-10-03" },
+        { _id: "b", amount: 2, transaction_date: "2026-10-03" },
+        { _id: "a", amount: 3, transaction_date: "2026-10-03" },
+        { _id: "old", amount: 4, transaction_date: "2026-10-01" },
+      ],
+    };
+    const known = new Map([["a", 0], ["b", 1], ["old", 2]]);
+    expect(buildActivity(sameDay, 25, known).map((r) => r.id)).toEqual(["new", "a", "b", "old"]);
+  });
+
+  it("availableBalance applies the activity to the opening balance", () => {
+    // 1 + 1650 - 60 - 23.4 - 100 + 40; the cancelled withdrawal is ignored.
+    expect(availableBalance(data)).toBe(1507.6);
+    expect(availableBalance({ ...data, deposits: [], withdrawals: [], purchases: [], transfers: [] })).toBe(1);
+    expect(availableBalance({ ...data, deposits: [], withdrawals: [], purchases: [], transfers: [{ id: "x", amount: 1, status: "completed" }] })).toBe(0);
   });
 
   it("buildBills uses the upcoming date and drops cancelled bills", () => {

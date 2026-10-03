@@ -10,7 +10,7 @@
 
 import {
   ANALYSIS_WINDOW_MS, CAUTION_THRESHOLD, DIGITS_ALERT_MESSAGE, GUARD_ARM_MS, HOLD_TTL_MS, SCAM_THRESHOLD,
-  buildActivity, buildBills, claimKey, crossed, digitsMatch, evaluateTransfer, formatUsd, hashLast4, isGuardArmed,
+  amountProblem, availableBalance, buildActivity, buildBills, claimKey, crossed, digitsMatch, evaluateTransfer, hashLast4, isGuardArmed,
   isTrustedPayee, isoDay, last4Of, mergeAnalyzerOutputs, parseAnalyzerJson, redactAnalyzerOutput, redactDigits,
   scoreCall, stateForScore, transcriptWindow, transferKindFor, verifyClaim,
   type AnalyzerOutput, type Claim, type Tactic, type Verdict,
@@ -98,8 +98,8 @@ function expireHolds(tx: Tx): void {
 
 function loadAccount(ctx: Proc, env: Env, sent: readonly MockTxn[]): AccountFetch | { error: string } {
   if (env.mock) {
-    // Mock data mirrors what the fixtures show: purchases listed, transfers posted as withdrawals.
-    return { data: mockAccountData(toMs(ctx.timestamp), sent), supportsPurchases: true, supportsTransfers: false };
+    // Mock data mirrors the live API: purchases and transfers are both available.
+    return { data: mockAccountData(toMs(ctx.timestamp), sent), supportsPurchases: true, supportsTransfers: true };
   }
   if (!env.nessie.key) return { error: 'NESSIE_KEY is not set.' };
   if (!env.nessie.accountId) return { error: 'No account id. Run `pnpm seed` first.' };
@@ -115,12 +115,14 @@ function writeAccount(tx: Tx, fetched: AccountFetch): void {
     nickname: account.nickname || account.type || 'Account',
     // Only the last 4 digits are ever kept. The full number is never stored or logged.
     last4: last4Of(account.account_number ?? '') ?? '',
-    balance: account.balance,
+    balance: availableBalance(fetched.data),
   };
   if (tx.db.accountSnapshot.id.find(SINGLETON)) tx.db.accountSnapshot.id.update(snapshot);
   else tx.db.accountSnapshot.insert(snapshot);
 
-  const activity = buildActivity(fetched.data).map((item, sortIndex) => ({ ...item, sortIndex }));
+  const known = new Map<string, number>();
+  for (const old of tx.db.activity.iter()) known.set(old.id, old.sortIndex);
+  const activity = buildActivity(fetched.data, 25, known).map((item, sortIndex) => ({ ...item, sortIndex }));
   const activityIds = new Set(activity.map((a) => a.id));
   for (const old of [...tx.db.activity.iter()]) if (!activityIds.has(old.id)) tx.db.activity.id.delete(old.id);
   for (const row of activity) {
@@ -389,34 +391,29 @@ const TransferResult = t.object('TransferResult', {
 interface Payment {
   env: Env;
   payeeName: string;
-  payeeAccountId: string;
   cash: boolean;
   amount: number;
 }
 
 const errorResult = (message: string) => ({ outcome: 'error', message, rule: 0, viaWithdrawal: false });
 
-function checkAmount(tx: Tx, amount: number): string | null {
-  if (!Number.isFinite(amount) || amount <= 0) return 'Enter an amount greater than $0.';
-  const balance = tx.db.accountSnapshot.id.find(SINGLETON)?.balance;
-  if (balance !== undefined && amount > balance) return `Not enough money in the account for ${formatUsd(amount)}.`;
-  return null;
-}
+const checkAmount = (tx: Tx, amount: number): string | null => amountProblem(amount, tx.db.accountSnapshot.id.find(SINGLETON)?.balance);
 
 /** Sends a payment that has already passed the rules (or a family approval), then refreshes. */
 function pay(ctx: Proc, p: Payment): { ok: true; viaWithdrawal: boolean } | { ok: false; error: string } {
   const date = isoDay(toMs(ctx.timestamp));
-  let viaWithdrawal = true;
+  const asTransfer = !p.cash && p.env.supportsTransfers;
+  let viaWithdrawal = !p.cash && !asTransfer;
   if (!p.env.mock) {
-    const sent = sendMoney(ctx.http, p.env.nessie, {
-      amount: p.amount, date, payeeName: p.payeeName, payeeAccountId: p.payeeAccountId, cash: p.cash, supportsTransfers: p.env.supportsTransfers,
-    });
+    const sent = sendMoney(ctx.http, p.env.nessie, { amount: p.amount, date, payeeName: p.payeeName, cash: p.cash, supportsTransfers: p.env.supportsTransfers });
     if (!sent.ok) return sent;
     viaWithdrawal = sent.viaWithdrawal;
   }
 
   ctx.withTx((tx) => {
-    if (p.env.mock) tx.db.mockTxn.insert({ id: 0n, date, description: withdrawalDescription(p.payeeName, p.cash), amount: p.amount });
+    if (p.env.mock) {
+      tx.db.mockTxn.insert({ id: 0n, kind: asTransfer ? 'transfer' : 'withdrawal', date, description: withdrawalDescription(p.payeeName, p.cash), amount: p.amount });
+    }
     if (p.cash) return;
     const row = findPayee(tx, p.payeeName);
     if (row) tx.db.payee.name.update({ ...row, timesPaid: row.timesPaid + 1 });
@@ -463,7 +460,7 @@ export const requestTransfer = spacetimedb.procedure(
         step: 'send' as const,
         rule: decision.rule,
         warning: decision.decision === 'allow' ? decision.message ?? '' : '',
-        payment: { env: readEnv(tx), payeeName, payeeAccountId: row?.nessieAccountId ?? '', cash: kind === 'cash_withdrawal', amount },
+        payment: { env: readEnv(tx), payeeName, cash: kind === 'cash_withdrawal', amount },
       };
     });
     if (plan.step === 'done') return plan.result;
@@ -485,13 +482,7 @@ export const approveHold = spacetimedb.procedure({ holdId: t.u64() }, TransferRe
     if (amountError) return { error: amountError };
     // Marked approved before sending so two approvals cannot both send it.
     tx.db.hold.id.update({ ...row, status: 'approved' });
-    const payee = findPayee(tx, row.payee);
-    return {
-      payment: {
-        env: readEnv(tx), payeeName: row.payee, payeeAccountId: payee?.nessieAccountId ?? '',
-        cash: transferKindFor(row.payee) === 'cash_withdrawal', amount: row.amount,
-      },
-    };
+    return { payment: { env: readEnv(tx), payeeName: row.payee, cash: transferKindFor(row.payee) === 'cash_withdrawal', amount: row.amount } };
   });
   if (!plan.payment) return errorResult(plan.error);
 

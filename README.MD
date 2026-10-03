@@ -80,7 +80,7 @@ Other scenarios are in the dropdown next to **Simulate call**: fake fraud alert,
 | `pnpm seed` | Create Margaret in the real Nessie API and write `.seed.json` (needs `NESSIE_KEY`) |
 | `pnpm --filter @scamshield/button keyboard` | Button bridge without the hardware: Enter is a press, `l` + Enter is a long press |
 
-**Real APIs:** copy `.env.example` to `.env`, set `MOCK=0` and the keys, run `pnpm seed` once, then `pnpm dev`. For live calls, run `ngrok http 8787` and put the https URL in `PUBLIC_URL`.
+**Real APIs:** copy `.env.example` to `.env`, set `MOCK=0` and the keys, run `pnpm seed` once, then `pnpm dev`. With `MOCK=0`, call analysis needs `GEMINI_API_KEY`: without it calls stay at Listening. For live calls, run `ngrok http 8787` and put the https URL in `PUBLIC_URL`.
 
 ## Repo layout
 
@@ -100,7 +100,7 @@ scripts         dev, seed, acceptance
 | Milestone | Status |
 | --- | --- |
 | M0 scaffold, M1 core engine, M2 module | Done, tested |
-| M3 Nessie procedures and seed | Mock mode done and tested. Real mode is written but has not been run against the live API. |
+| M3 Nessie procedures and seed | Done. Tested in mock mode and against the live Nessie API (seed, refresh, endpoint probe, transfer, cash withdrawal, hold approval). |
 | M4 dashboard, M5 guard and holds, M6 simulated calls | Done, tested end to end in a browser with `MOCK=1` |
 | M7 Gemini analyzer | Written, not run: needs `GEMINI_API_KEY` |
 | M8 live calls (Twilio + ElevenLabs) | Written, not run: needs Twilio and ElevenLabs keys and a public URL |
@@ -108,3 +108,16 @@ scripts         dev, seed, acceptance
 | M10 stretch (whisper, family alert, voice detection, `/ops`) | Not started |
 
 Places where the spec was ambiguous are marked in the code with `// SPEC-QUESTION:`.
+
+## What the live Nessie API does (checked 2026-10-03)
+
+These answer the spec's open questions and shaped the code:
+
+- **Balances never move.** Posting a deposit, withdrawal, purchase, or transfer leaves the account's `balance` unchanged. The dashboard balance is therefore the stored balance plus the activity. The seed opens Margaret's account at $6,750 and adds the $1,650 deposit, which shows as $8,400.
+- **Per-account purchases and transfers both work.** A transfer takes no payee (`payee_id` and `medium` are rejected), so the payee goes in the description: "Transfer to Oakwood Apartments". An empty transfer list comes back as a 404.
+- **Whole dollars only.** Amounts are truncated (12.34 becomes 12), so the dashboard refuses cents.
+- **Always send `status`.** A withdrawal saved without one makes that account's withdrawal list fail afterwards.
+- **Account numbers are assigned by the server**, and customers cannot be deleted. `pnpm seed --force` reuses the customer and replaces the accounts.
+- `GET /enterprise/deposits` returned a 502 when tried, which matters for the stretch `/ops` view.
+
+Also confirmed: SpacetimeDB 2.10.2 procedures can make outbound HTTPS calls (`ctx.http`), but not to localhost or private addresses. ElevenLabs realtime speech-to-text accepts Twilio's 8 kHz mu-law audio as is, per its API reference.

@@ -98,12 +98,12 @@ export function SendMoney() {
             <input
               id="amount"
               type="number"
-              inputMode="decimal"
-              min="0.01"
-              step="0.01"
+              inputMode="numeric"
+              min="1"
+              step="1"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              placeholder="0.00"
+              placeholder="0"
               required
               className={`${field} tabular-nums`}
             />

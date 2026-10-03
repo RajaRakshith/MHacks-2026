@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MSG_CONFIRM_LARGE, MSG_HOLD_CASH, MSG_HOLD_METHOD, MSG_HOLD_NEW_PAYEE, MSG_WARN_FLAGGED,
-  evaluateTransfer, isGuardArmed, isTrustedPayee, mentionsScamMethod, transferKindFor,
+  amountProblem, evaluateTransfer, isGuardArmed, isTrustedPayee, mentionsScamMethod, transferKindFor,
   type TransferContext, type TransferRequest,
 } from "../src";
 
@@ -89,6 +89,17 @@ describe("helpers", () => {
     expect(isTrustedPayee({ trusted: false, timesPaid: 1 })).toBe(false);
     expect(isTrustedPayee(null)).toBe(false);
     expect(isTrustedPayee(undefined)).toBe(false);
+  });
+
+  it("amountProblem refuses zero, cents, and more than the balance", () => {
+    expect(amountProblem(2000, 8400)).toBeNull();
+    expect(amountProblem(8400, 8400)).toBeNull();
+    expect(amountProblem(0, 8400)).toBe("Enter an amount greater than $0.");
+    expect(amountProblem(-5, 8400)).toBe("Enter an amount greater than $0.");
+    expect(amountProblem(Number.NaN, 8400)).toBe("Enter an amount greater than $0.");
+    expect(amountProblem(12.34, 8400)).toBe("Enter a whole-dollar amount. This account cannot send cents.");
+    expect(amountProblem(8401, 8400)).toBe("Not enough money in the account.");
+    expect(amountProblem(50, undefined)).toBeNull();
   });
 
   it("guard is armed only before armed_until", () => {
