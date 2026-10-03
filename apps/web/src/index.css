@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+/*
+ * Harbor Bank: a fictional bank. Teal on warm neutrals; deliberately not any
+ * real bank's palette.
+ *
+ * Status colors (good / warning / critical) are reserved for ScamShield state
+ * and always appear with an icon or a label, never as color alone. Each has a
+ * lighter "track" step of the same ramp for meter tracks and badge fills.
+ */
+:root {
+  --surface: #f2f5f4;
+  --card: #ffffff;
+  --sunken: #f6f8f7;
+  --ink: #14201f;
+  --muted: #5a6a68;
+  --line: #dde4e2;
+  --brand: #0b6b63;
+  --brand-strong: #08524c;
+  --brand-tint: #e3f1ef;
+  --on-brand: #ffffff;
+
+  --good: #0ca30c;
+  --good-track: #d8f1d8;
+  --warning: #fab219;
+  --warning-track: #fdeec8;
+  --critical: #d03b3b;
+  --critical-track: #f7dada;
+  --idle: #9aa8a6;
+  --idle-track: #e7eceb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #101514;
+    --card: #1a2120;
+    --sunken: #151b1a;
+    --ink: #edf2f1;
+    --muted: #9fb0ad;
+    --line: #2c3736;
+    --brand: #3fb5a8;
+    --brand-strong: #63cabd;
+    --brand-tint: #17302d;
+    --on-brand: #06201d;
+
+    --good-track: #153a18;
+    --warning-track: #46340a;
+    --critical-track: #4a1c1c;
+    --idle: #6f7f7c;
+    --idle-track: #26302f;
+  }
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-on-brand: var(--on-brand);
+  --color-good: var(--good);
+  --color-good-track: var(--good-track);
+  --color-warning: var(--warning);
+  --color-warning-track: var(--warning-track);
+  --color-critical: var(--critical);
+  --color-critical-track: var(--critical-track);
+  --color-idle: var(--idle);
+  --color-idle-track: var(--idle-track);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+  * { transition-duration: 0s !important; }
+}

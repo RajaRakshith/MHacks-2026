@@ -1,0 +1,5 @@
+{
+  "module-path": "./spacetime",
+  "server": "local",
+  "database": "scamshield"
+}

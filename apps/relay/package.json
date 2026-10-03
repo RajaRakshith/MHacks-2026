@@ -1,0 +1,25 @@
+{
+  "name": "@scamshield/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Relay: Twilio webhooks and audio, ElevenLabs STT, fixture playback, /protect",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@scamshield/bindings": "workspace:*",
+    "@scamshield/core": "workspace:*",
+    "dotenv": "^18.0.5",
+    "fastify": "^5.12.5",
+    "spacetimedb": "2.10.*",
+    "undici": "6",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.2",
+    "tsx": "^4.23.15"
+  }
+}
