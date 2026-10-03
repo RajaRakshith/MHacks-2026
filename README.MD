@@ -79,7 +79,8 @@ Other scenarios are in the dropdown next to **Simulate call**: fake fraud alert,
 | `pnpm acceptance` | End-to-end check of all four scenarios and the held transfer, against a running `pnpm dev` |
 | `pnpm seed` | Create Margaret in the real Nessie API and write `.seed.json` (needs `NESSIE_KEY`) |
 | `pnpm --filter @scamshield/button keyboard` | Button bridge without the hardware: Enter is a press, `l` + Enter is a long press |
-| `pnpm mobile` | Start the iOS app's dev server (Expo). See "iOS app" below. |
+| `pnpm phone` | Run the iOS app on a real phone through Expo Go, over tunnels. See "iOS app" below. |
+| `pnpm mobile` | Start the iOS app's dev server (Expo) for a phone on the same network |
 
 **Real APIs:** copy `.env.example` to `.env`, set `MOCK=0` and the keys, run `pnpm seed` once, then `pnpm dev`. With `MOCK=0`, call analysis needs `GEMINI_API_KEY`: without it calls stay at Listening. For live calls, run `ngrok http 8787` and put the https URL in `PUBLIC_URL`.
 
@@ -87,7 +88,24 @@ Other scenarios are in the dropdown next to **Simulate call**: fake fraud alert,
 
 `apps/mobile` is the same bank as a phone app: React Native with Expo (SDK 57), three tabs (Account, ScamShield, Held). It reads the same SpacetimeDB tables and calls the same reducers and procedures as the web dashboard, so both stay in sync live.
 
-**On an iPhone, with Expo Go** (no Mac needed):
+**On an iPhone, with Expo Go, from any network** (no Mac needed). This is the way that works on WSL2 and on Wi-Fi that keeps devices apart:
+
+1. Install **Expo Go** from the App Store.
+2. Install `cloudflared` once:
+
+   ```bash
+   curl -sSL -o ~/.local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x ~/.local/bin/cloudflared
+   ```
+
+3. With `pnpm dev` running in one terminal, run this in a second one and scan the QR code with the iPhone camera:
+
+   ```bash
+   pnpm phone
+   ```
+
+`pnpm phone` opens public tunnels to the database and the relay and starts Expo through its own tunnel. While it runs, anyone who has the tunnel URLs can reach the demo database, which has no login. The URLs are random and change every run.
+
+**On the same Wi-Fi, without tunnels:**
 
 1. Install **Expo Go** from the App Store. Put the phone on the same Wi-Fi as your computer.
 2. Start the demo server so the phone can reach it:
