@@ -17,7 +17,8 @@
     "test": "pnpm -r --if-present test",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
-    "mobile": "pnpm --filter @scamshield/mobile start"
+    "mobile": "pnpm --filter @scamshield/mobile start",
+    "phone": "node scripts/phone.mjs"
   },
   "devDependencies": {
     "@types/node": "20",
