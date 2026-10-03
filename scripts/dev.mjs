@@ -9,7 +9,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, openSync, readFileSync } from "node:fs";
 import { networkInterfaces } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,11 +120,13 @@ async function main() {
   } else {
     // Bound to localhost unless --lan is given: this is a demo database with no login.
     const bind = lan ? "0.0.0.0" : "127.0.0.1";
+    // Kept so a crash can be explained afterwards.
+    const dbLog = openSync(resolve(ROOT, ".spacetime.log"), "w");
     console.log(`[dev] Starting local SpacetimeDB on ${bind}:${host.port || 3000}`);
-    const child = spawn("spacetime", ["start", "--listen-addr", `${bind}:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: "ignore", detached: true });
+    const child = spawn("spacetime", ["start", "--listen-addr", `${bind}:${host.port || 3000}`, "--non-interactive"], { cwd: ROOT, stdio: ["ignore", dbLog, dbLog], detached: true });
     child.on("exit", (code) => {
       if (!shuttingDown) {
-        console.error(`[dev] spacetime start exited (${code ?? "signal"}).`);
+        console.error(`[dev] spacetime start exited (${code ?? "signal"}). See .spacetime.log for why.`);
         shutdown(1);
       }
     });
