@@ -2,7 +2,7 @@
   "scenario": "refund-overpayment",
   "callerNumber": "+13135550142",
   "lines": [
-    { "atMs": 0, "speaker": "caller", "text": "Hello, is this Margaret? This is Daniel from the Harbor Bank fraud department.",
+    { "atMs": 0, "speaker": "caller", "text": "Hello, is this Margaret? This is Daniel from your bank's fraud department.",
       "labels": { "tactics": ["bank_impersonation"], "claims": [] } },
     { "atMs": 5000, "speaker": "customer", "text": "Yes, this is Margaret. Is something wrong?" },
     { "atMs": 8500, "speaker": "caller", "text": "We deposited $900 into your account by mistake this morning.",

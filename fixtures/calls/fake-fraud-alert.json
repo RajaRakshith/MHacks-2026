@@ -2,7 +2,7 @@
   "scenario": "fake-fraud-alert",
   "callerNumber": "+18005550199",
   "lines": [
-    { "atMs": 0, "speaker": "caller", "text": "This is the Harbor Bank security team calling about your debit card.",
+    { "atMs": 0, "speaker": "caller", "text": "This is your bank's security team calling about your debit card.",
       "labels": { "tactics": ["bank_impersonation"], "claims": [] } },
     { "atMs": 5000, "speaker": "caller", "text": "We flagged a $499 charge at Walmart in Texas a few minutes ago. Did you make that purchase?",
       "labels": { "tactics": [], "claims": [{ "kind": "charge", "merchant": "Walmart", "amount": 499, "location": "Texas" }] } },

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Harbor Bank demo dashboard",
+  "description": "C1 Mockup demo bank dashboard",
   "scripts": {
     "dev": "vite",
     "build": "tsc -p tsconfig.json && vite build",

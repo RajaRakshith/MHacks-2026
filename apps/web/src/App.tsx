@@ -10,7 +10,7 @@ function Logo() {
       <svg viewBox="0 0 32 32" className="size-8" aria-hidden="true">
         <rect width="32" height="32" rx="8" className="fill-brand" />
         <path
-          d="M16 6v20M10 11h12M8 19c1.5 4 4.5 6 8 6s6.5-2 8-6"
+          d="M5 12.5L16 6.5l11 6M8.5 15v7.5M16 15v7.5M23.5 15v7.5M6 25.5h20"
           fill="none"
           className="stroke-on-brand"
           strokeWidth="2.2"
@@ -18,7 +18,7 @@ function Logo() {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-lg font-semibold tracking-tight text-ink">Harbor Bank</span>
+      <span className="text-lg font-semibold tracking-tight text-ink">C1 Mockup</span>
     </span>
   );
 }

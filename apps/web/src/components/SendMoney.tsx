@@ -79,7 +79,7 @@ export function SendMoney() {
             list="saved-payees"
             value={payee}
             onChange={(e) => setPayee(e.target.value)}
-            placeholder="Pick a saved payee or type a new name"
+            placeholder="Saved payee or a new name"
             autoComplete="off"
             required
             className={field}
@@ -144,10 +144,9 @@ function Result({ sent, busy, onConfirm, onCancel }: { sent: Sent; busy: boolean
       <div className="rounded-lg border border-critical bg-critical-track px-3 py-2.5 text-sm text-ink" role="alert">
         <p className="flex items-center gap-1.5 font-semibold">
           {Icon.lock}
-          Held: {what}
+          {result.message}
         </p>
-        <p className="mt-1">{result.message}</p>
-        <p className="mt-1 text-xs text-muted">It will not be sent unless a trusted contact approves it.</p>
+        <p className="mt-1">{what} will not be sent unless a trusted contact approves it.</p>
       </div>
     );
   }

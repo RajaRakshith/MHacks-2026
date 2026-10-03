@@ -2,7 +2,7 @@
   "name": "scamshield",
   "private": true,
   "version": "0.1.0",
-  "description": "ScamShield: Harbor Bank demo dashboard with a built-in scam-call guard (MHacks 2026)",
+  "description": "ScamShield: C1 Mockup demo bank dashboard with a built-in scam-call guard (MHacks 2026)",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"

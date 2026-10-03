@@ -137,8 +137,8 @@ export function ShieldPanel() {
           <div className="max-h-64 overflow-y-auto rounded-lg bg-sunken p-3" aria-live="polite">
             <ol className="flex flex-col gap-2.5">
               {lines.map((line) => (
-                <li key={line.id.toString()} className="text-sm leading-snug">
-                  <span className={`mr-2 inline-block w-12 text-xs font-semibold uppercase tracking-wide ${line.speaker === "caller" ? "text-ink" : "text-brand-strong"}`}>
+                <li key={line.id.toString()} className="grid grid-cols-[3.75rem_1fr] gap-2 text-sm leading-snug">
+                  <span className={`pt-0.5 text-xs font-semibold uppercase tracking-wide ${line.speaker === "caller" ? "text-ink" : "text-brand-strong"}`}>
                     {line.speaker === "caller" ? "Caller" : "You"}
                   </span>
                   <span className="text-ink">{line.text}</span>

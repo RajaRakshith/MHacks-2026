@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 /*
- * Harbor Bank: a fictional bank. Teal on warm neutrals; deliberately not any
- * real bank's palette.
+ * C1 Mockup: a mock bank for the demo. Teal on warm neutrals; deliberately not
+ * any real bank's palette or logo.
  *
  * Status colors (good / warning / critical) are reserved for ScamShield state
  * and always appear with an icon or a label, never as color alone. Each has a
