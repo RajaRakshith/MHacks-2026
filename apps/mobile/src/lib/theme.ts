@@ -1,7 +1,7 @@
 import { useColorScheme } from "react-native";
 
 /**
- * C1 Mockup colors, the same tokens as the web dashboard. Status colors
+ * C1 Mockup colors: Capital One's navy blue, the same tokens as the web dashboard. Status colors
  * (good / warning / critical) are reserved for ScamShield state and always
  * appear with a label or an icon, never as color alone.
  */
@@ -29,15 +29,15 @@ export interface Theme {
 
 const light: Theme = {
   dark: false,
-  surface: "#f2f5f4",
+  surface: "#f2f5f8",
   card: "#ffffff",
-  sunken: "#f6f8f7",
-  ink: "#14201f",
-  muted: "#5a6a68",
-  line: "#dde4e2",
-  brand: "#0b6b63",
-  brandStrong: "#08524c",
-  brandTint: "#e3f1ef",
+  sunken: "#f5f7fa",
+  ink: "#10222e",
+  muted: "#566573",
+  line: "#dbe2e8",
+  brand: "#004977",
+  brandStrong: "#003557",
+  brandTint: "#e5eef4",
   onBrand: "#ffffff",
   good: "#0ca30c",
   goodTrack: "#d8f1d8",
@@ -51,16 +51,16 @@ const light: Theme = {
 
 const dark: Theme = {
   dark: true,
-  surface: "#101514",
-  card: "#1a2120",
-  sunken: "#151b1a",
-  ink: "#edf2f1",
-  muted: "#9fb0ad",
-  line: "#2c3736",
-  brand: "#3fb5a8",
-  brandStrong: "#63cabd",
-  brandTint: "#17302d",
-  onBrand: "#06201d",
+  surface: "#0d141a",
+  card: "#16202a",
+  sunken: "#111a22",
+  ink: "#edf2f6",
+  muted: "#9db0bf",
+  line: "#283643",
+  brand: "#5aa9d6",
+  brandStrong: "#86c2e6",
+  brandTint: "#132b3c",
+  onBrand: "#04202f",
   good: "#0ca30c",
   goodTrack: "#153a18",
   warning: "#fab219",

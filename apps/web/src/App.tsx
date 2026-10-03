@@ -18,7 +18,7 @@ function Logo() {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="text-lg font-semibold tracking-tight text-ink">C1 Mockup</span>
+      <span className="text-lg font-semibold tracking-tight text-ink">C1 <span style={{ color: "var(--accent)" }}>Mockup</span></span>
     </span>
   );
 }

@@ -1,23 +1,23 @@
 @import "tailwindcss";
 
 /*
- * C1 Mockup: a mock bank for the demo. Teal on warm neutrals; deliberately not
- * any real bank's palette or logo.
+ * C1 Mockup: a mock bank for the demo, in Capital One's navy blue with a red
+ * accent. It does not use Capital One's logo.
  *
  * Status colors (good / warning / critical) are reserved for ScamShield state
  * and always appear with an icon or a label, never as color alone. Each has a
  * lighter "track" step of the same ramp for meter tracks and badge fills.
  */
 :root {
-  --surface: #f2f5f4;
+  --surface: #f2f5f8;
   --card: #ffffff;
-  --sunken: #f6f8f7;
-  --ink: #14201f;
-  --muted: #5a6a68;
-  --line: #dde4e2;
-  --brand: #0b6b63;
-  --brand-strong: #08524c;
-  --brand-tint: #e3f1ef;
+  --sunken: #f5f7fa;
+  --ink: #10222e;
+  --muted: #566573;
+  --line: #dbe2e8;
+  --brand: #004977;
+  --brand-strong: #003557;
+  --brand-tint: #e5eef4;
   --on-brand: #ffffff;
 
   --good: #0ca30c;
@@ -28,20 +28,21 @@
   --critical-track: #f7dada;
   --idle: #9aa8a6;
   --idle-track: #e7eceb;
+  --accent: #d03027;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface: #101514;
-    --card: #1a2120;
-    --sunken: #151b1a;
-    --ink: #edf2f1;
-    --muted: #9fb0ad;
-    --line: #2c3736;
-    --brand: #3fb5a8;
-    --brand-strong: #63cabd;
-    --brand-tint: #17302d;
-    --on-brand: #06201d;
+    --surface: #0d141a;
+    --card: #16202a;
+    --sunken: #111a22;
+    --ink: #edf2f6;
+    --muted: #9db0bf;
+    --line: #283643;
+    --brand: #5aa9d6;
+    --brand-strong: #86c2e6;
+    --brand-tint: #132b3c;
+    --on-brand: #04202f;
 
     --good-track: #153a18;
     --warning-track: #46340a;
