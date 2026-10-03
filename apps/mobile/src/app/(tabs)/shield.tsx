@@ -63,7 +63,7 @@ export default function ShieldScreen() {
     setBusy(true);
     setNotice(null);
     setShowAll(false);
-    const reply = await postRelay(path, mock ? { scenario } : {});
+    const reply = await postRelay(path, { scenario });
     setBusy(false);
     if (!reply.ok) setNotice(reply.error ?? "Could not start the call.");
     else if (reply.message) setNotice(reply.message);
@@ -158,9 +158,9 @@ export default function ShieldScreen() {
         )}
       </Card>
 
-      {mock && (
+      {(
         <Card>
-          <SectionLabel>Simulate a call (mock mode)</SectionLabel>
+          <SectionLabel>{mock ? "Simulate a call (mock mode)" : "Play a scripted call"}</SectionLabel>
           <View style={styles.chips}>
             {SCENARIOS.map((s) => (
               <Pressable

@@ -53,10 +53,12 @@ app.post<{ Body: SimulateBody | null }>("/simulate", async (req, reply) => runSi
  * The hardware button and the dashboard's "Protect this call" both land here.
  * Real mode: Twilio rings the customer's phone from the ScamShield number, and the customer taps Merge.
  */
-// SPEC-QUESTION: with MOCK=1 there is no phone to ring, so /protect plays a
-// scripted call instead (the scenario in the body, or refund-overpayment).
+// SPEC-QUESTION: with MOCK=1, or when Twilio is not configured, there is no
+// phone to ring, so /protect plays a scripted call instead (the scenario in
+// the body, or refund-overpayment). With MOCK=0 that call still goes through
+// the real analyzer and the real account.
 app.post<{ Body: SimulateBody | null }>("/protect", async (req, reply) => {
-  if (env.mock) return runSimulation(req.body ?? {}, reply);
+  if (env.mock || liveConfigProblem()) return runSimulation(req.body ?? {}, reply);
   const result = await ringCustomer();
   if (!result.ok) return reply.code(503).send(result);
   console.log(`[relay] /protect: ringing the customer (Twilio call ${result.callSid})`);

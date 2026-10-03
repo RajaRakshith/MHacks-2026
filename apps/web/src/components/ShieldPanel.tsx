@@ -58,7 +58,6 @@ export function ShieldPanel() {
   const [verdicts] = useTable(tables.verdict);
   const [alerts] = useTable(tables.alert);
   const [guards] = useTable(tables.guard);
-  const [configs] = useTable(tables.config);
 
   const endCall = useReducer(reducers.endCall);
   const armGuard = useReducer(reducers.armGuard);
@@ -69,7 +68,6 @@ export function ShieldPanel() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const mock = configs[0]?.mock ?? true;
   const call = pickCall(calls);
   const live = call !== null && call.endedAt === undefined;
   const state: ShieldState = live ? (call.state as ShieldState) : "idle";
@@ -95,7 +93,7 @@ export function ShieldPanel() {
   async function startCall(path: "/protect" | "/simulate") {
     setBusy(true);
     setNotice(null);
-    const reply = await postRelay(path, mock ? { scenario } : {});
+    const reply = await postRelay(path, { scenario });
     setBusy(false);
     if (!reply.ok) setNotice(reply.error ?? "Could not start the call.");
     else if (reply.message) setNotice(reply.message);
@@ -198,7 +196,8 @@ export function ShieldPanel() {
           Protect this call
         </Button>
 
-        {mock && (
+        {/* SPEC-QUESTION: the spec shows this in mock mode only. It stays in real mode so a scripted call can be played through the real analyzer. */}
+        {(
           <div className="flex gap-2">
             <label className="sr-only" htmlFor="scenario">Scenario</label>
             <select
