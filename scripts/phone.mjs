@@ -18,6 +18,7 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
+import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -70,13 +71,29 @@ async function ok(url) {
   }
 }
 
-const METRICS_PORTS = { database: 20251, relay: 20252 };
+/** A port nothing is using, so two copies of this script never share a tunnel's status port. */
+function freePort() {
+  return new Promise((resolvePort, reject) => {
+    const server = createServer();
+    server.on("error", reject);
+    server.listen(0, "127.0.0.1", () => {
+      const { port } = server.address();
+      server.close(() => resolvePort(port));
+    });
+  });
+}
 
-/** True once the tunnel process holds a live connection to Cloudflare. */
-async function connected(name) {
+/**
+ * True once this tunnel process holds a live connection to Cloudflare. The
+ * hostname is checked too, so a status port answered by some other tunnel is
+ * never mistaken for this one.
+ */
+async function connected(port, url) {
   try {
-    const res = await fetch(`http://127.0.0.1:${METRICS_PORTS[name]}/ready`, { signal: AbortSignal.timeout(2000) });
-    return res.ok;
+    const ready = await fetch(`http://127.0.0.1:${port}/ready`, { signal: AbortSignal.timeout(2000) });
+    if (!ready.ok) return false;
+    const info = await (await fetch(`http://127.0.0.1:${port}/quicktunnel`, { signal: AbortSignal.timeout(2000) })).json();
+    return info.hostname === new URL(url).hostname;
   } catch {
     return false;
   }
@@ -89,10 +106,11 @@ async function connected(name) {
  */
 async function tunnel(name, target) {
   for (let attempt = 1; attempt <= 4; attempt++) {
+    const port = await freePort();
     // http2 (TCP) rather than the default QUIC (UDP): venue and campus Wi-Fi often drop UDP.
     const child = spawn(
       "cloudflared",
-      ["tunnel", "--no-autoupdate", "--protocol", "http2", "--metrics", `127.0.0.1:${METRICS_PORTS[name]}`, "--url", target],
+      ["tunnel", "--no-autoupdate", "--protocol", "http2", "--metrics", `127.0.0.1:${port}`, "--url", target],
       { stdio: ["ignore", "pipe", "pipe"], detached: true },
     );
     let url = "";
@@ -106,7 +124,7 @@ async function tunnel(name, target) {
     let up = false;
     for (let i = 0; i < 30 && child.exitCode === null && !up; i++) {
       await sleep(1000);
-      up = url !== "" && (await connected(name));
+      up = url !== "" && (await connected(port, url));
     }
     if (up) {
       children.push(child);
