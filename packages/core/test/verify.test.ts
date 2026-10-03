@@ -132,6 +132,12 @@ describe("verifyClaim", () => {
     expect(verifyClaim({ kind: "charge" }, data, NOW)).toBeNull();
     expect(verifyClaim({ kind: "charge", location: "Texas" }, data, NOW)).toBeNull();
   });
+
+  it("skips a bill claim with no amount and no overdue statement, and checks it once either is given", () => {
+    expect(verifyClaim({ kind: "bill", payee: "DTE Energy" }, data, NOW)).toBeNull();
+    expect(verifyClaim({ kind: "bill", payee: "DTE Energy", overdue: true }, data, NOW)?.claimTrue).toBe(false);
+    expect(verifyClaim({ kind: "bill", payee: "DTE Energy", amount: 412 }, data, NOW)?.evidence).toContain("$94");
+  });
 });
 
 describe("digitsMatch", () => {

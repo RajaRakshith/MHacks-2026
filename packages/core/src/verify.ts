@@ -120,13 +120,15 @@ export function verifyCharge(
 
 /**
  * Checks one claim against account data. Returns null for a claim too vague
- * to check (a charge with neither merchant nor amount).
+ * to check: a charge with neither merchant nor amount, or a bill with neither
+ * an amount nor a statement that it is overdue.
  */
 export function verifyClaim(claim: Claim, data: Pick<AccountData, "deposits" | "bills" | "purchases" | "withdrawals" | "merchantNames">, nowMs: number): Verdict | null {
   switch (claim.kind) {
     case "deposit":
       return verifyDeposit(claim.amount, data.deposits, nowMs);
     case "bill":
+      if (claim.amount === undefined && claim.overdue !== true) return null;
       return verifyBill(claim.payee, claim.amount, data.bills, nowMs, claim.overdue);
     case "charge":
       if (claim.merchant === undefined && claim.amount === undefined) return null;

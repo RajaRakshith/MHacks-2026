@@ -78,7 +78,8 @@ export function claimKey(claim: Claim): string {
     case "deposit":
       return `deposit:${Math.round(claim.amount)}`;
     case "bill":
-      return `bill:${key(claim.payee)}:${claim.amount === undefined ? "" : Math.round(claim.amount)}`;
+      // One bill claim per payee: an analyzer may mention the bill before and after the amount is said.
+      return `bill:${key(claim.payee)}`;
     case "charge":
       return `charge:${claim.amount === undefined ? key(claim.merchant ?? "") : Math.round(claim.amount)}`;
   }

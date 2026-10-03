@@ -55,6 +55,7 @@ describe("claims", () => {
     expect(claimKey({ kind: "bill", payee: "DTE Energy", amount: 412 })).toBe(claimKey({ kind: "bill", payee: "dte  energy", amount: 412, overdue: true }));
     expect(claimKey({ kind: "charge", merchant: "Walmart", amount: 499 })).toBe(claimKey({ kind: "charge", merchant: "Walmart Supercenter", amount: 499, location: "TX" }));
     expect(claimKey({ kind: "deposit", amount: 900 })).not.toBe(claimKey({ kind: "deposit", amount: 950 }));
+    expect(claimKey({ kind: "bill", payee: "DTE Energy" })).toBe(claimKey({ kind: "bill", payee: "DTE Energy", amount: 412 }));
   });
 
   it("mergeAnalyzerOutputs unions tactics and de-duplicates claims", () => {

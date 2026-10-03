@@ -24,7 +24,7 @@ Return JSON with:
 - claims: every checkable statement the CALLER makes about the customer's account:
   - { "kind": "deposit", "amount": number } for a deposit, refund, or credit the caller says was made
   - { "kind": "charge", "merchant": string, "amount": number, "location": string } for a purchase or charge the caller says happened; omit fields that were not stated
-  - { "kind": "bill", "payee": string, "amount": number, "overdue": boolean } for a bill the caller says is owed; payee is the company name
+  - { "kind": "bill", "payee": string, "amount": number, "overdue": boolean } for a bill the caller says is owed; payee is the company name. Only report it once the caller has stated an amount or said it is overdue or past due
 - digitsSpoken: only if the CUSTOMER read out digits of a card or account number, those digits with no spaces. A masked number such as "•••• 1234" counts: return "1234". Otherwise omit it.
 
 An ordinary call (a pharmacy, a friend, an appointment reminder) has no tactics and no claims. Do not guess: report only what was actually said.`;
@@ -66,16 +66,20 @@ export function analyzeWithGemini(
   lines: readonly TranscriptLine[]
 ): { ok: true; output: AnalyzerOutput } | { ok: false; error: string } {
   const transcript = lines.map((l) => `${l.speaker === 'customer' ? 'You' : 'Caller'}: ${l.text}`).join('\n');
-  const res = httpJson(http, `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-    method: 'POST',
+  const request = {
+    method: 'POST' as const,
     headers: { 'x-goog-api-key': apiKey },
-    timeoutMs: 8_000,
+    timeoutMs: 6_000,
     body: {
       systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
       contents: [{ role: 'user', parts: [{ text: `Caller number: ${callerNumber || 'unknown'}\n\nTranscript:\n${transcript}` }] }],
       generationConfig: { temperature: 0, responseMimeType: 'application/json', responseSchema: RESPONSE_SCHEMA },
     },
-  });
+  };
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  let res = httpJson(http, endpoint, request);
+  // Seen against the live API: an occasional timeout or 403 that succeeds when repeated. Try once more.
+  if (!res.ok && (res.status === 0 || res.status === 403 || res.status === 429 || res.status >= 500)) res = httpJson(http, endpoint, request);
   if (!res.ok) return { ok: false, error: res.error ?? 'Gemini request failed' };
 
   const body = res.json as { candidates?: { content?: { parts?: { text?: string }[] } }[] } | undefined;

@@ -151,7 +151,7 @@ scripts         dev, seed, acceptance
 | M0 scaffold, M1 core engine, M2 module | Done, tested |
 | M3 Nessie procedures and seed | Done. Tested in mock mode and against the live Nessie API (seed, refresh, endpoint probe, transfer, cash withdrawal, hold approval). |
 | M4 dashboard, M5 guard and holds, M6 simulated calls | Done, tested end to end in a browser with `MOCK=1` |
-| M7 Gemini analyzer | Written, not run: needs `GEMINI_API_KEY` |
+| M7 Gemini analyzer | Done. All four scenarios pass with Gemini (`gemini-3.5-flash-lite`, labels ignored) against live Nessie data; each analysis takes about 1 second. Running calls back to back can hit Gemini's rate limit (429). |
 | M8 live calls (Twilio + ElevenLabs) | Written, not run: needs Twilio and ElevenLabs keys and a public URL |
 | M9 FREE-WILi button | Bridge works in keyboard mode. The serial protocol follows Intrepid's Python library and has not been tried on a device. |
 | M10 stretch (whisper, family alert, voice detection, `/ops`) | Not started |
