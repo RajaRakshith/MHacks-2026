@@ -28,20 +28,21 @@ function ownerToken(): string | undefined {
 
 function connectOnce(token: string | undefined): Promise<Db> {
   return new Promise((resolve, reject) => {
-    DbConnection.builder()
+    const conn = DbConnection.builder()
       .withUri(env.spacetimeUri)
       .withDatabaseName(env.spacetimeDb)
       .withToken(token)
-      .onConnect((conn) => {
-        conn
+      .onConnect((connected) => {
+        connected
           .subscriptionBuilder()
-          .onApplied(() => resolve(conn))
+          .onApplied(() => resolve(connected))
           .onError(() => reject(new Error("Subscription failed.")))
           .subscribe(["SELECT * FROM call", "SELECT * FROM config", "SELECT * FROM verdict"]);
       })
       .onConnectError((_ctx, error) => reject(error))
       .onDisconnect(() => {
-        if (current) {
+        // Only the connection in use triggers a reconnect, not a stale one closing late.
+        if (current === conn) {
           console.warn("[relay] Lost the SpacetimeDB connection. Reconnecting...");
           current = null;
           void connectForever();

@@ -1,4 +1,4 @@
-import { redactDigits, type AnalyzerOutput, type Speaker } from "@scamshield/core";
+import { redactAnalyzerOutput, redactDigits, type AnalyzerOutput, type Speaker } from "@scamshield/core";
 import type { Db } from "./db";
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
@@ -45,7 +45,7 @@ export class CallSession {
       // Redacted here too, so a full card number never leaves the relay.
       text: redactDigits(text),
       atMs: Math.max(0, Math.round(atMs)),
-      labelsJson: labels ? JSON.stringify(labels) : undefined,
+      labelsJson: labels ? JSON.stringify(redactAnalyzerOutput(labels)) : undefined,
     });
     if (speaker === "caller") this.requestAnalysis();
   }
