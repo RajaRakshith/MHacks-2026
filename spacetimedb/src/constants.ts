@@ -3,3 +3,5 @@ export const RISK_HOLD_THRESHOLD = 70;
 
 /** Default starting risk for a new call session. */
 export const INITIAL_RISK_SCORE = 0;
+
+export { HOLD_TTL_MS, BANK_HOLD_REASON } from './policy';

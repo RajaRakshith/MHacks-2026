@@ -36,6 +36,7 @@
     "bridge:dev": "npm run dev --workspace=scamshield-bridge",
     "bridge:start": "npm start --workspace=scamshield-bridge",
     "bridge:test": "npm test --workspace=scamshield-bridge",
+    "test:policy": "tsx --test spacetimedb/test/policy.test.ts",
     "tunnel": "node scripts/tunnel.mjs"
   },
   "devDependencies": {
