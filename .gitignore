@@ -3,8 +3,12 @@ dist/
 .env
 .env.*
 !.env.example
+.seed.json
+key.txt
 *.log
 .DS_Store
+.vite/
+coverage/
 worker/src/module_bindings/*
 !worker/src/module_bindings/index.ts
 !worker/src/module_bindings/README.md

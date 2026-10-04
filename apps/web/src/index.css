@@ -1,0 +1,100 @@
+@import "tailwindcss";
+
+/*
+ * C1 Mockup: a mock bank for the demo, in Capital One's navy blue with a red
+ * accent. It does not use Capital One's logo.
+ *
+ * Status colors (good / warning / critical) are reserved for ScamShield state
+ * and always appear with an icon or a label, never as color alone. Each has a
+ * lighter "track" step of the same ramp for meter tracks and badge fills.
+ */
+:root {
+  --surface: #f2f5f8;
+  --card: #ffffff;
+  --sunken: #f5f7fa;
+  --ink: #10222e;
+  --muted: #566573;
+  --line: #dbe2e8;
+  --brand: #004977;
+  --brand-strong: #003557;
+  --brand-tint: #e5eef4;
+  --on-brand: #ffffff;
+
+  --good: #0ca30c;
+  --good-track: #d8f1d8;
+  --warning: #fab219;
+  --warning-track: #fdeec8;
+  --critical: #d03b3b;
+  --critical-track: #f7dada;
+  --idle: #9aa8a6;
+  --idle-track: #e7eceb;
+  --accent: #d03027;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0d141a;
+    --card: #16202a;
+    --sunken: #111a22;
+    --ink: #edf2f6;
+    --muted: #9db0bf;
+    --line: #283643;
+    --brand: #5aa9d6;
+    --brand-strong: #86c2e6;
+    --brand-tint: #132b3c;
+    --on-brand: #04202f;
+
+    --good-track: #153a18;
+    --warning-track: #46340a;
+    --critical-track: #4a1c1c;
+    --idle: #6f7f7c;
+    --idle-track: #26302f;
+  }
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-card: var(--card);
+  --color-sunken: var(--sunken);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-tint: var(--brand-tint);
+  --color-on-brand: var(--on-brand);
+  --color-good: var(--good);
+  --color-good-track: var(--good-track);
+  --color-warning: var(--warning);
+  --color-warning-track: var(--warning-track);
+  --color-critical: var(--critical);
+  --color-critical-track: var(--critical-track);
+  --color-idle: var(--idle);
+  --color-idle-track: var(--idle-track);
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html {
+  background: var(--surface);
+  color: var(--ink);
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+.pulse-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-dot { animation: none; }
+  * { transition-duration: 0s !important; }
+}

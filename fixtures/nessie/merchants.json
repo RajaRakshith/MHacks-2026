@@ -1,0 +1,5 @@
+[
+  { "_id": "mock-mer-kroger", "name": "Kroger", "category": "grocery" },
+  { "_id": "mock-mer-pharmacy", "name": "Corner Pharmacy", "category": "pharmacy" },
+  { "_id": "mock-mer-hardware", "name": "Stadium Hardware", "category": "hardware_store" }
+]

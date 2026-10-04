@@ -1,0 +1,8 @@
+{
+  "customerId": "mock-cust-margaret",
+  "accountId": "mock-acct-margaret",
+  "payees": [
+    { "name": "Oakwood Apartments", "nessieAccountId": "mock-acct-landlord", "trusted": true },
+    { "name": "DTE Energy", "nessieAccountId": "", "trusted": true }
+  ]
+}

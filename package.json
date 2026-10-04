@@ -2,6 +2,11 @@
   "name": "scamshield",
   "private": true,
   "version": "0.1.0",
+  "description": "ScamShield: live call pipeline plus C1 Mockup dashboard (MHacks 2026)",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
   "type": "module",
   "workspaces": [
     "spacetimedb",
@@ -10,6 +15,17 @@
     "scamshield-bridge"
   ],
   "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "reset": "node scripts/dev.mjs --reset --publish-only",
+    "module:publish": "node scripts/dev.mjs --publish-only",
+    "seed": "tsx scripts/seed.ts",
+    "acceptance": "tsx scripts/acceptance.ts",
+    "test": "npm run bridge:test",
+    "test:dashboard": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "build": "pnpm -r --if-present build",
+    "mobile": "pnpm --filter @scamshield/mobile start",
+    "phone": "node scripts/phone.mjs",
     "spacetime:dev": "spacetime dev --yes",
     "spacetime:generate": "spacetime generate --yes --env dev",
     "spacetime:publish:local": "spacetime publish --yes --env dev",
@@ -24,6 +40,13 @@
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
+    "tsx": "^4.23.15",
     "typescript": "~5.6.2"
+  },
+  "pnpm": {
+    "overrides": {
+      "react": "19.2.3",
+      "react-dom": "19.2.3"
+    }
   }
 }

@@ -1,0 +1,4 @@
+[
+  { "_id": "mock-wd-1", "type": "withdrawal", "transaction_date": "@today-9", "status": "executed", "medium": "balance", "amount": 60, "description": "ATM withdrawal" },
+  { "_id": "mock-wd-2", "type": "withdrawal", "transaction_date": "@today-2", "status": "executed", "medium": "balance", "amount": 1100, "description": "Transfer to Oakwood Apartments" }
+]

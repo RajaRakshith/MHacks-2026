@@ -1,0 +1,19 @@
+{
+  "scenario": "fake-fraud-alert",
+  "callerNumber": "+18005550199",
+  "lines": [
+    { "atMs": 0, "speaker": "caller", "text": "This is your bank's security team calling about your debit card.",
+      "labels": { "tactics": ["bank_impersonation"], "claims": [] } },
+    { "atMs": 5000, "speaker": "caller", "text": "We flagged a $499 charge at Walmart in Texas a few minutes ago. Did you make that purchase?",
+      "labels": { "tactics": [], "claims": [{ "kind": "charge", "merchant": "Walmart", "amount": 499, "location": "Texas" }] } },
+    { "atMs": 11500, "speaker": "customer", "text": "No, I have never been to Texas." },
+    { "atMs": 14500, "speaker": "caller", "text": "Then we need to block it right now, before more charges go through.",
+      "labels": { "tactics": ["urgency"], "claims": [] } },
+    { "atMs": 19500, "speaker": "caller", "text": "To verify your identity, please read me the full card number and the code we just texted you.",
+      "labels": { "tactics": ["credential_request"], "claims": [] } },
+    { "atMs": 26000, "speaker": "customer", "text": "It's 4417 1234 5678 1234.",
+      "labels": { "tactics": [], "claims": [], "digitsSpoken": "4417123456781234" } },
+    { "atMs": 31000, "speaker": "caller", "text": "Thank you. Stay on the line while I secure the account.",
+      "labels": { "tactics": ["stay_on_line"], "claims": [] } }
+  ]
+}

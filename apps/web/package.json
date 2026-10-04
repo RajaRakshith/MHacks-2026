@@ -1,0 +1,29 @@
+{
+  "name": "@scamshield/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "C1 Mockup demo bank dashboard",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@scamshield/bindings": "workspace:*",
+    "@scamshield/core": "workspace:*",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "spacetimedb": "2.10.*"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "~19.2.2",
+    "@types/react-dom": "~19.2.2",
+    "@vitejs/plugin-react": "^6.1.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "~5.6.2",
+    "vite": "^8.3.2"
+  }
+}

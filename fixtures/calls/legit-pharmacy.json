@@ -1,0 +1,16 @@
+{
+  "scenario": "legit-pharmacy",
+  "callerNumber": "+17345550163",
+  "lines": [
+    { "atMs": 0, "speaker": "caller", "text": "Hi, this is Corner Pharmacy on Main Street calling for Margaret.",
+      "labels": { "tactics": [], "claims": [] } },
+    { "atMs": 4500, "speaker": "customer", "text": "Speaking." },
+    { "atMs": 6500, "speaker": "caller", "text": "Your prescription refill is ready for pickup.",
+      "labels": { "tactics": [], "claims": [] } },
+    { "atMs": 10500, "speaker": "caller", "text": "We are open until 9 tonight and until 6 on Saturday.",
+      "labels": { "tactics": [], "claims": [] } },
+    { "atMs": 15000, "speaker": "customer", "text": "Wonderful. I'll come by this afternoon." },
+    { "atMs": 18000, "speaker": "caller", "text": "Great. Have a nice day!",
+      "labels": { "tactics": [], "claims": [] } }
+  ]
+}
