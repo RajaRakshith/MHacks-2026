@@ -3,19 +3,18 @@ import { useSyncExternalStore } from "react";
 import { Platform } from "react-native";
 
 /**
- * Where the database and the relay are. Both run on the developer's machine.
+ * Where the database is. It runs on the developer's machine.
  *
- * On the same network, the app reaches them on the machine that served it.
- * Through `pnpm phone` they sit behind tunnels whose addresses can change
+ * On the same network, the app reaches it on the machine that served the app.
+ * Through `pnpm phone` the database sits behind a tunnel whose address can change
  * while the app is running, so the app asks the dev server for the current
- * ones (see metro.config.js) and keeps checking.
+ * address (see metro.config.js) and keeps checking.
  */
 export interface Endpoints {
   spacetimeUri: string;
-  relayUrl: string;
 }
 
-export const SPACETIME_DB = process.env.EXPO_PUBLIC_SPACETIME_DB ?? "scamshield";
+export const SPACETIME_DB = process.env.EXPO_PUBLIC_SPACETIME_DB ?? "scamshield-dev";
 
 /** The dev server this app was loaded from, e.g. "https://abc-8081.exp.direct" or "http://192.168.1.20:8081". */
 function devOrigin(): string {
@@ -34,7 +33,6 @@ function devHost(): string {
 
 const fallback: Endpoints = {
   spacetimeUri: process.env.EXPO_PUBLIC_SPACETIME_URI ?? `ws://${devHost()}:3000`,
-  relayUrl: (process.env.EXPO_PUBLIC_RELAY_URL ?? `http://${devHost()}:8787`).replace(/\/+$/, ""),
 };
 
 let current: Endpoints | null = null;
@@ -45,14 +43,14 @@ async function refresh(): Promise<void> {
   try {
     const res = await fetch(`${devOrigin()}/scamshield-endpoints.json`, { cache: "no-store" });
     const body = (await res.json()) as Partial<Endpoints>;
-    if (typeof body.spacetimeUri === "string" && typeof body.relayUrl === "string") {
-      next = { spacetimeUri: body.spacetimeUri, relayUrl: body.relayUrl.replace(/\/+$/, "") };
+    if (typeof body.spacetimeUri === "string") {
+      next = { spacetimeUri: body.spacetimeUri };
     }
   } catch {
-    // The dev server is unreachable or has no tunnel addresses: keep what we have, or the fallback.
+    // The dev server is unreachable or has no tunnel address: keep what we have, or the fallback.
     if (current) return;
   }
-  if (!current || current.spacetimeUri !== next.spacetimeUri || current.relayUrl !== next.relayUrl) {
+  if (!current || current.spacetimeUri !== next.spacetimeUri) {
     current = next;
     listeners.forEach((l) => l());
   }
@@ -61,7 +59,7 @@ async function refresh(): Promise<void> {
 void refresh();
 setInterval(() => void refresh(), 8000);
 
-/** The current addresses, or null until the first lookup finishes. Re-renders when a tunnel moves. */
+/** The current database address, or null until the first lookup finishes. Re-renders when a tunnel moves. */
 export function useEndpoints(): Endpoints | null {
   return useSyncExternalStore(
     (listener) => {
@@ -72,5 +70,3 @@ export function useEndpoints(): Endpoints | null {
     () => current,
   );
 }
-
-export const relayUrl = (): string => (current ?? fallback).relayUrl;

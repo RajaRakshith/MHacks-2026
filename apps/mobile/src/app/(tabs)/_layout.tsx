@@ -1,5 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { tables } from "@scamshield/bindings";
+import { DEMO_USER_ID } from "@scamshield/core";
 import { Tabs } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Vibration } from "react-native";
@@ -10,8 +11,8 @@ import { useShield } from "../../lib/useShield";
 export default function TabLayout() {
   const t = useTheme();
   const shield = useShield();
-  const [holds] = useTable(tables.hold);
-  const waiting = holds.filter((h) => h.status === "held").length;
+  const [intents] = useTable(tables.transferIntents);
+  const waiting = intents.filter((row) => row.userId === DEMO_USER_ID && row.status.tag === "Held").length;
 
   // A short buzz the moment a call turns into "Scam likely".
   const previous = useRef(shield.state);

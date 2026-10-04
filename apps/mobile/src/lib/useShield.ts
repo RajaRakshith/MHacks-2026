@@ -1,44 +1,34 @@
 import { tables } from "@scamshield/bindings";
-import type { Call } from "@scamshield/bindings/types";
-import { isGuardArmed, type ShieldState } from "@scamshield/core";
+import type { CallSessions } from "@scamshield/bindings/types";
+import { DEMO_USER_ID, shieldState, type ShieldState } from "@scamshield/core";
+import { useMemo } from "react";
 import { useTable } from "spacetimedb/react";
-import { useNow } from "./useNow";
 
 export interface Shield {
-  /** The open call if there is one, otherwise the most recent call. */
-  call: Call | null;
-  /** True while a call is in progress. */
+  /** The open call session for the demo user, if one is active. */
+  callSession: CallSessions | null;
+  /** True while a call session is active. */
   live: boolean;
   state: ShieldState;
-  /** Transfers are protected until this time. */
-  armed: boolean;
-  armedUntil: Date | undefined;
-  mock: boolean;
 }
 
 /** ScamShield state shared by the tab bar, the account banner, and the ScamShield tab. */
 export function useShield(): Shield {
-  const [calls] = useTable(tables.call);
-  const [guards] = useTable(tables.guard);
-  const [configs] = useTable(tables.config);
-  const now = useNow();
+  const [sessions] = useTable(tables.callSessions);
 
-  let open: Call | null = null;
-  let latest: Call | null = null;
-  for (const call of calls) {
-    if (!latest || call.id > latest.id) latest = call;
-    if (call.endedAt === undefined && (!open || call.id > open.id)) open = call;
-  }
-  const call = open ?? latest;
-  const live = open !== null;
-  const armedUntil = guards[0]?.armedUntil.toDate();
+  const callSession = useMemo(() => {
+    let active: CallSessions | null = null;
+    for (const row of sessions) {
+      if (row.userId !== DEMO_USER_ID || row.status.tag !== "Active") continue;
+      if (!active || row.id > active.id) active = row;
+    }
+    return active;
+  }, [sessions]);
 
+  const live = callSession !== null;
   return {
-    call,
+    callSession,
     live,
-    state: live && call ? (call.state as ShieldState) : "idle",
-    armed: armedUntil !== undefined && isGuardArmed(armedUntil.getTime(), now),
-    armedUntil,
-    mock: configs[0]?.mock ?? true,
+    state: shieldState(live, callSession?.riskScore ?? 0),
   };
 }

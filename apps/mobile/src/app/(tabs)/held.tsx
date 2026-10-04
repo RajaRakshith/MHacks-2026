@@ -1,101 +1,87 @@
-import { procedures, reducers, tables } from "@scamshield/bindings";
-import { Fragment, useMemo, useState } from "react";
+import { tables } from "@scamshield/bindings";
+import { DEMO_USER_ID } from "@scamshield/core";
+import { Fragment, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { useProcedure, useReducer, useTable } from "spacetimedb/react";
-import { Body, Button, Card, Divider, Empty, Screen, SectionLabel } from "../../components/ui";
-import { ago, usdCompact } from "../../lib/format";
+import { useTable } from "spacetimedb/react";
+import { Body, Card, Divider, Empty, Screen, SectionLabel } from "../../components/ui";
+import { usdCompact } from "../../lib/format";
 import { useTheme } from "../../lib/theme";
 import { useNow } from "../../lib/useNow";
 
-const STATUS_LABEL: Record<string, string> = { approved: "Approved and sent", rejected: "Rejected", expired: "Expired" };
+const DECIDED = new Set(["Completed", "Failed", "Expired", "Released"]);
+
+function timeLeft(expiresAt: { toDate(): Date } | undefined, now: number): string | null {
+  if (!expiresAt) return null;
+  const remaining = expiresAt.toDate().getTime() - now;
+  if (remaining <= 0) return "0 min left";
+  const totalMinutes = Math.max(1, Math.ceil(remaining / 60_000));
+  if (totalMinutes < 60) return `${totalMinutes} min left`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes === 0 ? `${hours} hr left` : `${hours} hr ${minutes} min left`;
+}
 
 export default function HeldScreen() {
   const t = useTheme();
-  const [holds] = useTable(tables.hold);
-  const approveHold = useProcedure(procedures.approveHold);
-  const rejectHold = useReducer(reducers.rejectHold);
+  const [intents] = useTable(tables.transferIntents);
   const now = useNow();
-  const [busy, setBusy] = useState<bigint | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
-  const sorted = useMemo(() => [...holds].sort((a, b) => Number(b.id - a.id)), [holds]);
-  const waiting = sorted.filter((h) => h.status === "held");
-  const decided = sorted.filter((h) => h.status !== "held");
-  // Money protected: held plus rejected amounts.
-  const protectedTotal = holds.filter((h) => h.status === "held" || h.status === "rejected").reduce((sum, h) => sum + h.amount, 0);
-
-  async function approve(id: bigint) {
-    setBusy(id);
-    setError(null);
-    try {
-      const result = await approveHold({ holdId: id });
-      if (result.outcome !== "sent") setError(result.message);
-    } catch {
-      setError("Could not approve this transfer.");
+  const mine = useMemo(
+    () => intents.filter((row) => row.userId === DEMO_USER_ID).sort((a, b) => (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)),
+    [intents],
+  );
+  const waiting = mine.filter((row) => row.status.tag === "Held");
+  const decided = mine.filter((row) => DECIDED.has(row.status.tag));
+  const protectedDollars = useMemo(() => {
+    let cents = 0n;
+    for (const row of mine) {
+      if (row.status.tag === "Held" || row.status.tag === "Expired") cents += row.amountCents;
     }
-    setBusy(null);
-  }
-
-  async function reject(id: bigint) {
-    setBusy(id);
-    setError(null);
-    try {
-      await rejectHold({ holdId: id });
-    } catch {
-      setError("Could not reject this transfer.");
-    }
-    setBusy(null);
-  }
+    return Number(cents) / 100;
+  }, [mine]);
 
   return (
     <Screen>
       <View style={[styles.protected, { backgroundColor: t.brandTint }]}>
         <SectionLabel>Money protected</SectionLabel>
-        <Text style={[styles.total, { color: t.ink }]}>{usdCompact(protectedTotal)}</Text>
-        <Body muted style={{ fontSize: 13 }}>Held or rejected while ScamShield was on guard</Body>
+        <Text style={[styles.total, { color: t.ink }]}>{usdCompact(protectedDollars)}</Text>
+        <Body muted style={{ fontSize: 13 }}>Held or expired before the money was sent</Body>
       </View>
 
       <Card>
-        <SectionLabel>Waiting for approval</SectionLabel>
+        <SectionLabel>On hold</SectionLabel>
         {waiting.length === 0 ? (
           <Empty>Nothing is on hold.</Empty>
         ) : (
-          waiting.map((hold) => {
-            const expired = hold.expiresAt.toDate().getTime() <= now;
+          waiting.map((row) => {
+            const left = timeLeft(row.expiresAt, now);
             return (
-              <View key={hold.id.toString()} style={[styles.hold, { borderColor: t.line }]}>
+              <View key={row.id.toString()} style={[styles.hold, { borderColor: t.line }]}>
                 <View style={styles.holdHead}>
-                  <Text style={{ color: t.ink, fontSize: 22, fontWeight: "700" }}>{usdCompact(hold.amount)}</Text>
-                  <Text style={{ color: t.muted, fontSize: 13 }}>Held {ago(hold.createdAt.toDate(), now)}</Text>
+                  <Text style={{ color: t.ink, fontSize: 22, fontWeight: "700" }}>{usdCompact(Number(row.amountCents) / 100)}</Text>
+                  {left ? <Text style={{ color: t.muted, fontSize: 13 }}>{left}</Text> : null}
                 </View>
-                <Text style={{ color: t.ink, fontSize: 15 }}>to {hold.payee}</Text>
-                {hold.memo ? <Body muted style={{ fontSize: 13 }}>Memo: {hold.memo}</Body> : null}
-                <Body muted>{hold.reason}</Body>
-                {/* In the MVP, Approve stands in for family approval. */}
-                <View style={{ flexDirection: "row", gap: 10, marginTop: 8 }}>
-                  <Button label="Approve" onPress={() => void approve(hold.id)} disabled={busy === hold.id || expired} style={{ flex: 1 }} />
-                  <Button variant="danger" label="Reject" onPress={() => void reject(hold.id)} disabled={busy === hold.id || expired} style={{ flex: 1 }} />
-                </View>
-                {expired && <Body muted style={{ fontSize: 13 }}>This hold has expired.</Body>}
+                <Text style={{ color: t.ink, fontSize: 15 }}>to {row.destinationAccount}</Text>
+                {row.memo ? <Body muted style={{ fontSize: 13 }}>Memo: {row.memo}</Body> : null}
+                {row.holdReason ? <Body muted>{row.holdReason}</Body> : null}
               </View>
             );
           })
         )}
-        {error && <Body>{error}</Body>}
       </Card>
 
       {decided.length > 0 && (
         <Card>
           <SectionLabel>Decided</SectionLabel>
           <View>
-            {decided.map((hold, i) => (
-              <Fragment key={hold.id.toString()}>
+            {decided.map((row, i) => (
+              <Fragment key={row.id.toString()}>
                 {i > 0 && <Divider />}
                 <View style={styles.decided}>
                   <Text style={{ flex: 1, color: t.ink, fontSize: 15 }} numberOfLines={1}>
-                    <Text style={{ fontWeight: "700" }}>{usdCompact(hold.amount)}</Text> to {hold.payee}
+                    <Text style={{ fontWeight: "700" }}>{usdCompact(Number(row.amountCents) / 100)}</Text> to {row.destinationAccount}
                   </Text>
-                  <Text style={{ color: t.muted, fontSize: 13, fontWeight: "600" }}>{STATUS_LABEL[hold.status] ?? hold.status}</Text>
+                  <Text style={{ color: t.muted, fontSize: 13, fontWeight: "600" }}>{row.status.tag}</Text>
                 </View>
               </Fragment>
             ))}
