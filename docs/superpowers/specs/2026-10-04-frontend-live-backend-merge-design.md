@@ -62,9 +62,11 @@ Keep the existing call and money-gate tables and reducers. Add a thin bank shell
 - `replace_activity(rows)` — one reducer that deletes existing activity and inserts the latest Nessie list
 - `upsert_payee({ name, nessieAccountId, trusted })`
 
-Existing reducers stay: `start_call_session`, `end_call_session`, `update_risk_score`, `record_risk_event`, `append_transcript_segment`, `request_transfer`, `complete_transfer`, `fail_transfer`, `release_held_transfer`, `set_risk_hold_threshold`.
+Existing reducers stay: `start_call_session`, `end_call_session`, `update_risk_score`, `record_risk_event`, `append_transcript_segment`, `request_transfer`, `complete_transfer`, `fail_transfer`, `set_risk_hold_threshold`. Keep `release_held_transfer` in the module for now but do not call it from the UI or the worker. Add `expire_held_transfer({ intentId })` — only valid on `Held` rows whose `expiresAt` is in the past; sets `Expired`.
 
 `request_transfer` is still a reducer (no return payload). Hold rule is unchanged: active session for that `userId` and `riskScore >= threshold` → `Held`, else `Approved`.
+
+**Held transfers (4-hour bank hold).** A Held intent is not remotely releasable on the demo UI. The reducer sets `expiresAt = requestedAt + 4 hours` and `holdReason` to: `Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.` After `expiresAt`, the worker calls `expire_held_transfer`; status becomes `Expired` and the money is still not sent. Add `Expired` to `TransferIntentStatus` and `expiresAt: option(timestamp)` on `transfer_intents`. `HOLD_TTL_MS = 4 * 60 * 60 * 1000` lives in `spacetimedb/src/constants.ts`. There is no Release / Approve / force-override on the dashboard.
 
 ### `worker/`
 
@@ -72,6 +74,7 @@ Two jobs, both fail-stop:
 
 1. **Refresh.** On startup and again after `complete_transfer` or `fail_transfer`, GET the Nessie account (`NESSIE_ACCOUNT_ID`), customer name, and recent deposits / withdrawals / transfers. Upsert snapshot, activity, and payees. Adapt the existing fetch in `spacetime/src/nessie.ts` / `packages/core` into the worker as Node `fetch` (the worker does not use Spacetime `ctx.http`). Do not call Nessie from the browser or from a Spacetime procedure in this merge. No periodic timer and no UI-triggered refresh in this merge.
 2. **Execute.** Subscribe to `transfer_intents` with status Approved. POST to Nessie. Success → `complete_transfer` and refresh snapshot. Failure → `fail_transfer` with the API error.
+3. **Expire holds.** Every 60 seconds, any `Held` intent with `expiresAt` in the past → `expire_held_transfer`. Do not send it. A clock tick is required because no row changes at hour 4.
 
 If `NESSIE_API_KEY` or `NESSIE_ACCOUNT_ID` is missing, or Nessie errors, the worker stays running, logs the error, writes no snapshot, and must not return `ok: true` with a `mock-…` transfer id. Delete that simulation path. The dashboard then shows “Nessie account not loaded.”
 
@@ -93,9 +96,9 @@ Same tables, same reducers.
 |---|---|
 | Login | Unchanged demo door (`margaret` / `demo1234`). Not a user id. |
 | Account | Name, last4, Nessie balance. Recent activity from the worker refresh. No snapshot → error, Send Money disabled. |
-| Send Money | Payee (list or typed Nessie account id) → `request_transfer({ userId: "demo-user", amountCents, destinationAccount, memo })`. Watch the new `transfer_intents` row for Held / Approved / Completed / Failed. Dollars in the form become integer cents. No confirmation step. No trusted-payee or 4-hour-guard rules. |
+| Send Money | Payee (list or typed Nessie account id) → `request_transfer({ userId: "demo-user", amountCents, destinationAccount, memo })`. Watch the new `transfer_intents` row for Held / Approved / Completed / Failed / Expired. Dollars in the form become integer cents. No confirmation step. No trusted-payee or 4-hour-guard rules. |
 | ScamShield | Risk meter from `call_sessions.risk_score`. Transcript from `transcript_segments` (no speaker field; show as a single stream). Warnings / signals from `risk_events`. Idle when there is no active session. Static help: how to dial / merge the ScamShield Twilio number. **No Protect, no Simulate, no scenario dropdown, no relay client.** |
-| Held | Lists `transfer_intents`. “Money protected” = sum of Held amounts (cents → dollars). After the call is Ended or score is under threshold, Release calls `release_held_transfer({ intentId, force: false })`. No family Approve / Reject. Force override is not on the demo UI. |
+| Held | Lists `transfer_intents`. Waiting rows are `Held`; show the come-to-the-bank reason and time left until `expiresAt`. “Money protected” = sum of Held + Expired amounts (cents → dollars). No Release, Approve, Reject, or force override. Expired rows stay in the decided list as “Expired — not sent.” |
 | Account analysis / `/try` | Removed. |
 
 Status pill is display-only, derived from the live score: no active session → idle; active and `< 40` → listening; `40–69` → caution; `≥ 70` → scam-likely. It does not decide holds.
@@ -116,10 +119,10 @@ Remove from the running path: `spacetime/` publish, `apps/relay`, Protect / Simu
 
 **Send Money.** UI calls `request_transfer`. The reducer reads the active session in the same transaction and inserts Held or Approved.
 
-- **Held:** worker does nothing. Nessie is untouched. Held panel totals it.
+- **Held:** worker does not send. Nessie is untouched. UI shows the come-to-the-bank message and the 4-hour clock. After 4 hours the worker expires the row; still not sent.
 - **Approved:** worker sends to Nessie. Success → `complete_transfer` + snapshot refresh. Nessie error → `fail_transfer`. UI shows Failed, not Sent.
 
-**Release.** `release_held_transfer` without force after the session is no longer high-risk. Worker may then send.
+There is no dashboard Release path. Coming into the bank is the human story; the software path is hold → expire unsent.
 
 ## Error handling
 
@@ -134,7 +137,7 @@ Fail-stop: if a dependency did not succeed, say so. No mock call, no mock Margar
 | In call | Grok / Gemini / TTS / Spacetime write fails | Same as the live bridge spec. Last real rows stay on screen. No scripted conversation. |
 | Send Money | Reducer errors | Alert with the error. No local held/sent chip. |
 | Send Money | Approved, Nessie fails | Row is Failed with the worker reason. Balance unchanged. |
-| Send Money | Held | Held + `holdReason`. Success of the gate, not a failure. |
+| Send Money | Held | Held + come-to-the-bank `holdReason` + 4-hour expiry. Success of the gate, not a failure. After expiry: Expired, still not sent. |
 
 ## Config
 
@@ -153,7 +156,7 @@ Keep `npm run bridge:test`. Do not loosen Grok / Gemini fail-stop, SATS-JSON, or
 
 **New automated checks**
 
-1. **Money gate.** Active session + score ≥ threshold + `request_transfer("demo-user")` → Held, worker does not call Nessie. No active high-risk session → Approved. A different `userId` is not held by `demo-user`’s call.
+1. **Money gate.** Active session + score ≥ threshold + `request_transfer("demo-user")` → Held with `expiresAt` 4 hours out, worker does not call Nessie. No active high-risk session → Approved. A different `userId` is not held by `demo-user`’s call. `expire_held_transfer` on a past `expiresAt` → Expired, still no Nessie send. It errors if the hold has not expired yet.
 2. **Worker Nessie fail-stop.** Missing key / account id or Nessie error → no `account_snapshot` write; Approved intent → `fail_transfer`, never `complete_transfer`. No `mock-` transfer ids.
 3. **UI wiring.** ScamShield has no Protect / Simulate / relay import. Send Money calls `request_transfer` with `demo-user` and integer cents. Held panel reads `transfer_intents`.
 
@@ -166,17 +169,17 @@ Delete dashboard tests that require Simulate, claims, or the 4-hour guard. Keep 
 - Spacetime down → Offline banner, no fake account.
 - Worker / Nessie down → Account error, Send Money disabled.
 - Idle, no call → idle shield, Nessie balance visible.
-- Live incoming call as `demo-user` → transcript and score appear; Send Money at score ≥ 70 → Held; balance unchanged.
-- After hangup, Release → Approved → Nessie moves or Failed with a real error.
+- Live incoming call as `demo-user` → transcript and score appear; Send Money at score ≥ 70 → Held with come-to-the-bank copy; balance unchanged. No Release button.
+- After hangup the hold remains until the 4-hour expiry (or a test call to `expire_held_transfer` once `expiresAt` is past).
 
 ## Out of scope
 
 - Changing Grok / Gemini / ElevenLabs TTS behavior on the bridge.
 - Claim verification, 4-hour guard, trusted-payee hold rules, fixture simulate.
 - Neon, Fetch.ai, `server/`, `Twilio/`, `apps/button`.
-- Force-release on the demo UI.
+- Force-release or self-serve Release on the demo UI. `release_held_transfer` is unused by the merged apps.
 - Putting the Nessie API key in the browser or in a public Spacetime table.
 
 ## Success
 
-On one database (`scamshield-dev` locally): an incoming merged call as `demo-user` updates the dashboard transcript and risk live; Send Money during score ≥ 70 is Held and Nessie does not move; after the call, Release then Nessie (or a visible Failed); if Spacetime, Nessie, or the worker is down, the UI alerts and does not show a mock bank or a scripted call.
+On one database (`scamshield-dev` locally): an incoming merged call as `demo-user` updates the dashboard transcript and risk live; Send Money during score ≥ 70 is Held for 4 hours with a come-to-the-bank message and Nessie does not move; after 4 hours the intent is Expired and still not sent; if Spacetime, Nessie, or the worker is down, the UI alerts and does not show a mock bank or a scripted call.
