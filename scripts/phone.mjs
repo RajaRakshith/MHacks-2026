@@ -2,18 +2,18 @@
 /**
  * `pnpm phone`: runs the iOS app on a real phone through Expo Go, on any network.
  *
- * The phone has to reach three things on this machine: the Expo dev server,
- * the database (port 3000), and the relay (port 8787). On WSL2, or on Wi-Fi
- * that keeps devices apart, it cannot. This script gives each one a public
- * tunnel instead:
+ * The phone has to reach two things on this machine: the Expo dev server and
+ * the database (port 3000). On WSL2, or on Wi-Fi that keeps devices apart, it
+ * cannot. This script gives each one a public tunnel instead:
  *
- *   database, relay   Cloudflare quick tunnels (`cloudflared`, no account)
+ *   database          Cloudflare quick tunnel (`cloudflared`, no account)
  *   Expo dev server   Expo's own tunnel (`expo start --tunnel`)
  *
  * Run `pnpm dev` first, in another terminal. Then scan the QR code this prints.
  *
- * While this runs, the demo database and relay are reachable by anyone who
- * has the tunnel URLs. They are random and change every run. Stop with Ctrl+C.
+ * While this runs, the demo database is reachable by anyone who has the tunnel
+ * URL. It is random and changes every run. Stop with Ctrl+C. The phone app
+ * does not use the relay, and this script does not start or tunnel one.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -37,8 +37,7 @@ function readEnv() {
 
 const env = { ...readEnv(), ...process.env };
 const dbLocal = (env.SPACETIME_URI || "ws://127.0.0.1:3000").replace(/^ws/, "http").replace(/\/+$/, "");
-const relayLocal = `http://127.0.0.1:${env.RELAY_PORT || 8787}`;
-const database = env.SPACETIME_DB || "scamshield";
+const database = env.SPACETIME_DATABASE ?? env.SPACETIME_DB ?? "scamshield-dev";
 
 const children = [];
 let shuttingDown = false;
@@ -139,11 +138,10 @@ async function tunnel(name, target) {
 const ENDPOINTS_FILE = resolve(ROOT, "apps/mobile/.expo/endpoints.json");
 
 /** The app reads this through the dev server (metro.config.js) and follows it when it changes. */
-function publish(dbTunnel, relayTunnel) {
+function publish(dbTunnel) {
   mkdirSync(dirname(ENDPOINTS_FILE), { recursive: true });
-  writeFileSync(ENDPOINTS_FILE, JSON.stringify({ spacetimeUri: dbTunnel.url.replace(/^http/, "ws"), relayUrl: relayTunnel.url }));
+  writeFileSync(ENDPOINTS_FILE, JSON.stringify({ spacetimeUri: dbTunnel.url.replace(/^http/, "ws") }));
   console.log(`[phone] database  ${dbTunnel.url}`);
-  console.log(`[phone] relay     ${relayTunnel.url}`);
 }
 
 /**
@@ -151,29 +149,27 @@ function publish(dbTunnel, relayTunnel) {
  * connection and its address stops resolving. This replaces a tunnel that has
  * been down for about 20 seconds and tells the app the new address.
  */
-async function watch(tunnels) {
-  const downSince = new Map();
+async function watch(dbTunnel) {
+  let current = dbTunnel;
+  let downSince = 0;
   while (!shuttingDown) {
     await sleep(5000);
-    for (const key of ["database", "relay"]) {
-      const t = tunnels[key];
-      const alive = t.child.exitCode === null && (await connected(t.port, t.url));
-      if (alive) {
-        downSince.delete(key);
-        continue;
-      }
-      if (!downSince.has(key)) downSince.set(key, Date.now());
-      if (Date.now() - downSince.get(key) < 20_000 || shuttingDown) continue;
-      console.warn(`[phone] The ${key} tunnel dropped. Opening a new one...`);
-      stop(t.child);
-      try {
-        tunnels[key] = await tunnel(key, t.target);
-        downSince.delete(key);
-        publish(tunnels.database, tunnels.relay);
-        console.log("[phone] The app will switch to the new address within a few seconds.");
-      } catch (e) {
-        console.error(`[phone] ${e instanceof Error ? e.message : String(e)}`);
-      }
+    const alive = current.child.exitCode === null && (await connected(current.port, current.url));
+    if (alive) {
+      downSince = 0;
+      continue;
+    }
+    if (!downSince) downSince = Date.now();
+    if (Date.now() - downSince < 20_000 || shuttingDown) continue;
+    console.warn("[phone] The database tunnel dropped. Opening a new one...");
+    stop(current.child);
+    try {
+      current = await tunnel("database", current.target);
+      downSince = 0;
+      publish(current);
+      console.log("[phone] The app will switch to the new address within a few seconds.");
+    } catch (e) {
+      console.error(`[phone] ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
@@ -187,16 +183,15 @@ async function main() {
     );
     process.exit(1);
   }
-  if (!(await ok(`${dbLocal}/v1/ping`)) || !(await ok(`${relayLocal}/health`))) {
-    console.error("[phone] The demo server is not running. Start it in another terminal with `pnpm dev`, then run this again.");
+  if (!(await ok(`${dbLocal}/v1/ping`))) {
+    console.error("[phone] SpacetimeDB is not running. Start it in another terminal with `pnpm dev`, then run this again.");
     process.exit(1);
   }
 
-  // One at a time: two quick tunnels requested at the same moment both came up dead.
-  console.log("[phone] Opening tunnels to the database and the relay...");
-  const tunnels = { database: await tunnel("database", dbLocal), relay: await tunnel("relay", relayLocal) };
-  publish(tunnels.database, tunnels.relay);
-  void watch(tunnels);
+  console.log("[phone] Opening a tunnel to the database...");
+  const dbTunnel = await tunnel("database", dbLocal);
+  publish(dbTunnel);
+  void watch(dbTunnel);
 
   console.log("[phone] Starting Expo. Scan the QR code with the iPhone camera; it opens in Expo Go.\n");
 

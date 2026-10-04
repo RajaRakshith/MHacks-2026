@@ -28,6 +28,12 @@ function isHeld(status: unknown): boolean {
   return false;
 }
 
+function isApproved(status: unknown): boolean {
+  if (status && typeof status === 'object' && 'tag' in status) return (status as { tag: string }).tag === 'Approved';
+  if (Array.isArray(status)) return status[0] === 1; // Pending=0, Approved=1
+  return false;
+}
+
 call('start_call_session', JSON.stringify({
   userId: 'demo-user',
   callerNumber: { some: '+1555' },
@@ -65,8 +71,17 @@ call('request_transfer', JSON.stringify({
   destinationAccount: 'other',
   memo: { none: [] },
 }));
-const other = (await sql("SELECT user_id, status FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
-if (!other || isHeld(other[1])) throw new Error(`someone-else should not be Held, got ${JSON.stringify(other)}`);
+const other = (await sql("SELECT id, user_id, status FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
+if (!other || isHeld(other[2])) throw new Error(`someone-else should not be Held, got ${JSON.stringify(other)}`);
+// fail_transfer only accepts Approved. Mark it Failed immediately so the worker cannot send it from NESSIE_ACCOUNT_ID.
+call('fail_transfer', JSON.stringify({
+  intentId: Number(other[0]),
+  reason: 'acceptance: do not send',
+}));
+const failed = (await sql("SELECT id, status FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
+if (!failed || Number(failed[0]) !== Number(other[0]) || isApproved(failed[1])) {
+  throw new Error(`someone-else Approved intent was left sendable, got ${JSON.stringify(failed)}`);
+}
 
 let expireFailed = false;
 try {
