@@ -69,6 +69,16 @@ export default function ShieldScreen() {
     else if (reply.message) setNotice(reply.message);
   }
 
+  /** A blank conversation: ends the open call and starts an empty one. */
+  async function onReset() {
+    setBusy(true);
+    setNotice(null);
+    setShowAll(false);
+    const reply = await postRelay("/type/reset", {});
+    setBusy(false);
+    setNotice(reply.ok ? "New conversation started." : reply.error ?? "Could not reset.");
+  }
+
   async function onEndCall() {
     if (!call) return;
     try {
@@ -96,6 +106,7 @@ export default function ShieldScreen() {
           <Button label="End call" onPress={() => void onEndCall()} disabled={!live} style={{ flex: 1 }} />
           <Button label="I'm on a suspicious call" onPress={() => void armGuard().catch(() => setNotice("Could not arm the guard."))} style={{ flex: 2 }} />
         </View>
+        <Button label="Reset conversation" icon="refresh" onPress={() => void onReset()} disabled={busy} />
         {notice && <Body muted>{notice}</Body>}
       </Card>
 

@@ -4,10 +4,11 @@ import { Fragment, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useSpacetimeDB, useTable } from "spacetimedb/react";
 import { SendMoney } from "../../components/SendMoney";
-import { Body, Card, Divider, Empty, Notice, Screen, SectionLabel, StatusPill } from "../../components/ui";
-import { SPACETIME_URI } from "../../lib/config";
+import { Body, Button, Card, Divider, Empty, Notice, Screen, SectionLabel, StatusPill } from "../../components/ui";
+import { useEndpoints } from "../../lib/config";
 import { clock, shortDay, signedUsd, usd, usdCompact } from "../../lib/format";
 import { useTheme } from "../../lib/theme";
+import { signOut } from "../../lib/session";
 import { useShield } from "../../lib/useShield";
 
 const BILL_STATUS: Record<string, string> = { pending: "Pending", completed: "Paid", recurring: "Recurring", cancelled: "Cancelled" };
@@ -16,6 +17,7 @@ export default function AccountScreen() {
   const t = useTheme();
   const { isActive, connectionError } = useSpacetimeDB();
   const shield = useShield();
+  const endpoints = useEndpoints();
   const [snapshots, ready] = useTable(tables.accountSnapshot);
   const [activity] = useTable(tables.activity);
   const [bills] = useTable(tables.bill);
@@ -28,7 +30,7 @@ export default function AccountScreen() {
     <Screen>
       {!isActive && (
         <Notice tone="neutral" icon="cloud-offline-outline" title={connectionError ? "Cannot reach the demo server" : "Connecting…"}>
-          {connectionError ? <Body muted>Start it with `pnpm dev --lan`, on the same Wi-Fi as this phone. Looking for {SPACETIME_URI}.</Body> : null}
+          {connectionError ? <Body muted>Start it with `pnpm dev --lan`, on the same Wi-Fi as this phone. Looking for {endpoints?.spacetimeUri ?? "the server"}.</Body> : null}
         </Notice>
       )}
 
@@ -103,6 +105,8 @@ export default function AccountScreen() {
           </View>
         )}
       </Card>
+
+      <Button label="Sign out" icon="log-out-outline" onPress={signOut} />
 
       <Text style={{ color: t.muted, fontSize: 12, textAlign: "center" }}>Demo app. Mock data from the Capital One Nessie hackathon API.</Text>
     </Screen>

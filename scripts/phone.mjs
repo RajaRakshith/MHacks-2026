@@ -17,7 +17,7 @@
  */
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -100,9 +100,9 @@ async function connected(port, url) {
 }
 
 /**
- * Starts a quick tunnel to `target` and resolves with its https URL once it is
- * really connected. A tunnel can print its URL and still never connect, so the
- * URL alone is not trusted: it is retried until `/ready` says it is up.
+ * Starts a quick tunnel to `target` and resolves once it is really connected.
+ * A tunnel can print its URL and still never connect, so the URL alone is not
+ * trusted: it is retried until `/ready` says it is up.
  */
 async function tunnel(name, target) {
   for (let attempt = 1; attempt <= 4; attempt++) {
@@ -115,8 +115,7 @@ async function tunnel(name, target) {
     );
     let url = "";
     const onData = (chunk) => {
-      const text = chunk.toString();
-      url ||= /https:\/\/[a-z0-9-]+\.trycloudflare\.com/.exec(text)?.[0] ?? "";
+      url ||= /https:\/\/[a-z0-9-]+\.trycloudflare\.com/.exec(chunk.toString())?.[0] ?? "";
     };
     child.stdout.on("data", onData);
     child.stderr.on("data", onData);
@@ -128,19 +127,55 @@ async function tunnel(name, target) {
     }
     if (up) {
       children.push(child);
-      child.on("exit", () => {
-        if (!shuttingDown) {
-          console.error(`[phone] The ${name} tunnel stopped. Stop this (Ctrl+C) and run \`pnpm phone\` again.`);
-          shutdown(1);
-        }
-      });
-      return url;
+      return { name, target, url, port, child };
     }
     stop(child);
     console.warn(`[phone] The ${name} tunnel did not connect (attempt ${attempt} of 4). Trying again...`);
     await sleep(1500);
   }
   throw new Error(`Could not open the ${name} tunnel. Check the internet connection and try again.`);
+}
+
+const ENDPOINTS_FILE = resolve(ROOT, "apps/mobile/.expo/endpoints.json");
+
+/** The app reads this through the dev server (metro.config.js) and follows it when it changes. */
+function publish(dbTunnel, relayTunnel) {
+  mkdirSync(dirname(ENDPOINTS_FILE), { recursive: true });
+  writeFileSync(ENDPOINTS_FILE, JSON.stringify({ spacetimeUri: dbTunnel.url.replace(/^http/, "ws"), relayUrl: relayTunnel.url }));
+  console.log(`[phone] database  ${dbTunnel.url}`);
+  console.log(`[phone] relay     ${relayTunnel.url}`);
+}
+
+/**
+ * Quick tunnels can drop for good: the process stays up but holds no
+ * connection and its address stops resolving. This replaces a tunnel that has
+ * been down for about 20 seconds and tells the app the new address.
+ */
+async function watch(tunnels) {
+  const downSince = new Map();
+  while (!shuttingDown) {
+    await sleep(5000);
+    for (const key of ["database", "relay"]) {
+      const t = tunnels[key];
+      const alive = t.child.exitCode === null && (await connected(t.port, t.url));
+      if (alive) {
+        downSince.delete(key);
+        continue;
+      }
+      if (!downSince.has(key)) downSince.set(key, Date.now());
+      if (Date.now() - downSince.get(key) < 20_000 || shuttingDown) continue;
+      console.warn(`[phone] The ${key} tunnel dropped. Opening a new one...`);
+      stop(t.child);
+      try {
+        tunnels[key] = await tunnel(key, t.target);
+        downSince.delete(key);
+        publish(tunnels.database, tunnels.relay);
+        console.log("[phone] The app will switch to the new address within a few seconds.");
+      } catch (e) {
+        console.error(`[phone] ${e instanceof Error ? e.message : String(e)}`);
+      }
+    }
+  }
 }
 
 async function main() {
@@ -159,24 +194,18 @@ async function main() {
 
   // One at a time: two quick tunnels requested at the same moment both came up dead.
   console.log("[phone] Opening tunnels to the database and the relay...");
-  const dbUrl = await tunnel("database", dbLocal);
-  const relayUrl = await tunnel("relay", relayLocal);
+  const tunnels = { database: await tunnel("database", dbLocal), relay: await tunnel("relay", relayLocal) };
+  publish(tunnels.database, tunnels.relay);
+  void watch(tunnels);
 
-  console.log(`[phone] database  ${dbUrl}`);
-  console.log(`[phone] relay     ${relayUrl}`);
   console.log("[phone] Starting Expo. Scan the QR code with the iPhone camera; it opens in Expo Go.\n");
 
-  // --clear: the tunnel URLs are compiled into the app and are new every run.
+  // The app looks the tunnel addresses up at run time, so nothing about them is compiled in.
   // Expo stays in this terminal's process group so its keyboard shortcuts work.
   const expo = spawn(process.execPath, [resolve(ROOT, "apps/mobile/node_modules/expo/bin/cli"), "start", "--tunnel", "--clear"], {
     cwd: resolve(ROOT, "apps/mobile"),
     stdio: "inherit",
-    env: {
-      ...process.env,
-      EXPO_PUBLIC_SPACETIME_URI: dbUrl.replace(/^http/, "ws"),
-      EXPO_PUBLIC_SPACETIME_DB: database,
-      EXPO_PUBLIC_RELAY_URL: relayUrl,
-    },
+    env: { ...process.env, EXPO_PUBLIC_SPACETIME_DB: database },
   });
   children.push(expo);
   expo.on("exit", (code) => shutdown(code ?? 0));
