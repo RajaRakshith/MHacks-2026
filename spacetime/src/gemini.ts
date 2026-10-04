@@ -33,7 +33,9 @@ Return JSON with:
   - romance: a romantic or new-friend contact who asks for money, gifts, or financial help
   - job_or_advance_fee: a job, loan, or debt-relief offer that needs an upfront fee, or asks the customer to forward money or packages
   - charity_appeal: asks for a donation, especially with pressure or an unusual way to pay
-  - clear_scam: your own overall judgment. Add it whenever, taking the whole window together, this call is more likely a scam than not. It is better to be safe than sorry: when in real doubt about a call that involves money or personal details, add it. Never add it for an ordinary call that asks for nothing.
+  - clear_scam: your own overall judgment. Add it only once the caller has actually asked for or demanded something a scammer wants: money or a payment, a card number, PIN, password or code, personal details, remote access, moving money, or secrecy; or has threatened the customer. Saying who they are, or mentioning a problem with the account, is NOT enough on its own: real banks call too. Once there is such an ask and the call is more likely a scam than not, add it; it is better to be safe than sorry. Never add it for a call that asks for nothing.
+  - likely_legit: your own overall judgment the other way. Add it when, taking the whole window together, this looks like an ordinary, legitimate call: nothing is being demanded, there is no pressure, and what is said fits a normal reason to call. Never add it together with clear_scam.
+  - invites_verification: the caller tells the customer to hang up and call the official number, check their own account or app, visit a branch, or take their time. Real callers do this; scammers avoid it.
 - claims: every checkable statement the CALLER makes about the customer's account:
   - { "kind": "deposit", "amount": number } for a deposit, refund, or credit the caller says was made
   - { "kind": "charge", "merchant": string, "amount": number, "location": string } for a purchase or charge the caller says happened; omit fields that were not stated

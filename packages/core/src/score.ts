@@ -1,4 +1,4 @@
-import type { ShieldState, Tactic } from "./types";
+import { REASSURING, type ShieldState, type Tactic } from "./types";
 
 /**
  * Points per tactic. Each counts once per call.
@@ -30,6 +30,9 @@ export const TACTIC_POINTS: Record<Tactic, number> = {
   urgency: 15,
   stay_on_line: 15,
   charity_appeal: 10,
+  // Reassuring signals lower the score.
+  likely_legit: -30,
+  invites_verification: -15,
 };
 
 export const CLAIM_FALSE_POINTS = 30;
@@ -57,7 +60,10 @@ export interface ScoreInput {
 /** Sum of every signal, clamped to 0..100. */
 export function scoreCall(input: ScoreInput): number {
   let total = 0;
-  for (const tactic of new Set(input.tactics)) total += TACTIC_POINTS[tactic] ?? 0;
+  const tactics = new Set(input.tactics);
+  // A scammer can turn friendly at the end. Once a call is a clear scam, nothing reassuring counts.
+  if (tactics.has("clear_scam")) for (const t of REASSURING) tactics.delete(t);
+  for (const tactic of tactics) total += TACTIC_POINTS[tactic] ?? 0;
   for (const verdict of input.verdicts) total += verdict.claimTrue ? CLAIM_TRUE_POINTS : CLAIM_FALSE_POINTS;
   if (input.callerReported) total += REPORTED_NUMBER_POINTS;
   if (input.digitsMatched) total += DIGITS_MATCH_POINTS;

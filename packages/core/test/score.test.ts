@@ -32,13 +32,17 @@ describe("scoreCall: every row of the scoring table (section 3.2)", () => {
     ["stay_on_line", 15],
     ["charity_appeal", 10],
   ];
+  const reassuring: [Tactic, number][] = [
+    ["likely_legit", -30],
+    ["invites_verification", -15],
+  ];
 
   it.each(rows)("%s is worth +%i", (tactic, points) => {
     expect(score({ tactics: [tactic] })).toBe(points);
   });
 
   it("covers every tactic in the type", () => {
-    expect(rows.map(([t]) => t).sort()).toEqual([...TACTICS].sort());
+    expect([...rows, ...reassuring].map(([t]) => t).sort()).toEqual([...TACTICS].sort());
     expect(Object.keys(TACTIC_POINTS).sort()).toEqual([...TACTICS].sort());
   });
 
@@ -130,5 +134,24 @@ describe("better safe than sorry", () => {
 
   it("an ordinary call still scores 0", () => {
     expect(score({})).toBe(0);
+  });
+});
+
+describe("the score goes down when a call looks ordinary", () => {
+  it("reassuring signals subtract points", () => {
+    expect(score({ tactics: ["urgency", "bank_impersonation"] })).toBe(35);
+    expect(score({ tactics: ["urgency", "bank_impersonation", "likely_legit"] })).toBe(5);
+    expect(score({ tactics: ["urgency", "bank_impersonation", "invites_verification"] })).toBe(20);
+    expect(score({ tactics: ["likely_legit", "invites_verification"] })).toBe(0);
+  });
+
+  it("a call can drop back from Caution to Listening", () => {
+    expect(stateForScore(score({ tactics: ["bank_impersonation", "personal_info_request"] }))).toBe("caution");
+    expect(stateForScore(score({ tactics: ["bank_impersonation", "personal_info_request", "likely_legit", "invites_verification"] }))).toBe("listening");
+  });
+
+  it("nothing reassuring counts once the call is a clear scam", () => {
+    const scam = score({ tactics: ["clear_scam", "urgency"] });
+    expect(score({ tactics: ["clear_scam", "urgency", "likely_legit", "invites_verification"] })).toBe(scam);
   });
 });

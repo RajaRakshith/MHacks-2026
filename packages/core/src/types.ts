@@ -7,7 +7,9 @@ export type Tactic =
   | "refund_overpayment"
   | "business_impersonation" | "utility_impersonation" | "tech_support" | "legal_threat"
   | "safe_account" | "personal_info_request" | "family_emergency" | "prize_or_lottery"
-  | "investment_pitch" | "romance" | "job_or_advance_fee" | "charity_appeal" | "clear_scam";
+  | "investment_pitch" | "romance" | "job_or_advance_fee" | "charity_appeal" | "clear_scam"
+  // Reassuring signals. These lower the score.
+  | "likely_legit" | "invites_verification";
 
 export type Claim =
   | { kind: "charge"; merchant?: string; amount?: number; location?: string }
@@ -27,7 +29,11 @@ export const TACTICS: readonly Tactic[] = [
   "business_impersonation", "utility_impersonation", "tech_support", "legal_threat",
   "safe_account", "personal_info_request", "family_emergency", "prize_or_lottery",
   "investment_pitch", "romance", "job_or_advance_fee", "charity_appeal", "clear_scam",
+  "likely_legit", "invites_verification",
 ];
+
+/** Signals that make a call look safer. They lower the score and never count once the call is judged a clear scam. */
+export const REASSURING: readonly Tactic[] = ["likely_legit", "invites_verification"];
 
 /** Chip text shown in the ScamShield panel. */
 export const TACTIC_LABELS: Record<Tactic, string> = {
@@ -53,6 +59,8 @@ export const TACTIC_LABELS: Record<Tactic, string> = {
   job_or_advance_fee: "Job offer or upfront fee",
   charity_appeal: "Charity appeal",
   clear_scam: "AI verdict: clear scam",
+  likely_legit: "AI verdict: looks ordinary",
+  invites_verification: "Invites you to verify",
 };
 
 export const SHIELD_STATE_LABELS: Record<ShieldState, string> = {

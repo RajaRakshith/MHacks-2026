@@ -9,7 +9,7 @@
  */
 
 import {
-  ANALYSIS_WINDOW_MS, CAUTION_THRESHOLD, DIGITS_ALERT_MESSAGE, GUARD_ARM_MS, HOLD_TTL_MS, SCAM_THRESHOLD,
+  ANALYSIS_WINDOW_MS, CAUTION_THRESHOLD, DIGITS_ALERT_MESSAGE, GUARD_ARM_MS, HOLD_TTL_MS, REASSURING, SCAM_THRESHOLD,
   amountProblem, availableBalance, buildActivity, buildBills, claimKey, crossed, digitsMatch, evaluateTransfer, hashLast4, isGuardArmed,
   isTrustedPayee, isoDay, last4Of, mergeAnalyzerOutputs, parseAnalyzerJson, redactAnalyzerOutput, redactDigits,
   scoreCall, stateForScore, transcriptWindow, transferKindFor, verifyClaim,
@@ -317,6 +317,14 @@ export const analyzeCall = spacetimedb.procedure({ callId: t.u64() }, AnalyzeRes
       if (tactics.has(tactic)) continue;
       tactics.add(tactic);
       tx.db.tacticHit.insert({ id: 0n, callId, tactic });
+    }
+    // The overall verdict follows the latest read of the call: "looks ordinary"
+    // is dropped as soon as scam tactics show up, and comes back only if the
+    // analyzer says so again. A clear scam stays a clear scam.
+    const scamSignals = output.tactics.some((t) => !REASSURING.includes(t));
+    if (tactics.has('likely_legit') && (tactics.has('clear_scam') || (scamSignals && !output.tactics.includes('likely_legit')))) {
+      for (const row of [...tx.db.tacticHit.callId.filter(callId)]) if (row.tactic === 'likely_legit') tx.db.tacticHit.id.delete(row.id);
+      tactics.delete('likely_legit');
     }
 
     const outcomes: { claimTrue: boolean }[] = [];
