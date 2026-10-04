@@ -72,8 +72,13 @@ export async function executeNessieTransfer(
       return { ok: false, error: `Nessie ${response.status}: ${text}` };
     }
 
-    const data = (await response.json()) as { _id?: string; id?: string };
-    const transferId = data._id ?? data.id;
+    const data = (await response.json()) as {
+      objectCreated?: { _id?: string; id?: string };
+      _id?: string;
+      id?: string;
+    };
+    const transferId =
+      data.objectCreated?._id ?? data.objectCreated?.id ?? data._id ?? data.id;
     if (!transferId) {
       return { ok: false, error: 'Nessie response missing transfer id' };
     }

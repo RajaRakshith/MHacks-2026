@@ -12,7 +12,7 @@
  *   npm run worker:dev
  */
 
-import { refreshAccount, type ActivityRow, type PayeeRow, type SnapshotRow } from './account.js';
+import { refreshAccount } from './account.js';
 import { settleApprovedIntent } from './approved-intent.js';
 import { dueHoldIds } from './expire.js';
 
@@ -46,24 +46,8 @@ type TransferRow = {
   expiresAt?: { toDate(): Date } | null;
 };
 
-type WorkerContext = {
-  reducers: {
-    completeTransfer: (args: {
-      intentId: bigint;
-      nessieTransferId: string;
-    }) => void;
-    failTransfer: (args: { intentId: bigint; reason: string }) => void;
-    expireHeldTransfer: (args: { intentId: bigint }) => void;
-    upsertAccountSnapshot: (args: SnapshotRow) => void;
-    replaceActivity: (args: { rows: ActivityRow[] }) => void;
-    upsertPayee: (args: PayeeRow) => void;
-  };
-};
-
-// Generated bindings do not include expireHeldTransfer or the account reducers yet.
-function asWorkerContext(conn: { reducers: object }): WorkerContext {
-  return conn as unknown as WorkerContext;
-}
+/** Anything with the generated, typed reducers: the connection or an event context. */
+type WorkerContext = { reducers: InstanceType<typeof DbConnection>['reducers'] };
 
 function expiresAtToMs(expiresAt: { toDate(): Date } | null | undefined): number | null {
   if (!expiresAt) return null;
@@ -113,12 +97,12 @@ async function handleApprovedIntent(
 function registerHandlers(conn: InstanceType<typeof DbConnection>) {
   conn.db.transferIntents.onInsert((ctx, row) => {
     syncHeldRow(row);
-    void handleApprovedIntent(asWorkerContext(ctx), row);
+    void handleApprovedIntent(ctx, row);
   });
 
   conn.db.transferIntents.onUpdate((ctx, _oldRow, row) => {
     syncHeldRow(row);
-    void handleApprovedIntent(asWorkerContext(ctx), row);
+    void handleApprovedIntent(ctx, row);
   });
 
   conn.db.transferIntents.onDelete((_ctx, row) => {
@@ -132,15 +116,15 @@ function connect() {
     .withDatabaseName(DATABASE_NAME)
     .onConnect(conn => {
       console.log(`[worker] Connected to SpacetimeDB (${DATABASE_NAME})`);
-      const ctx = asWorkerContext(conn);
+      const ctx = conn;
       registerHandlers(conn);
       void refreshAccount(ctx);
       startHoldExpiry(ctx);
 
-      conn.subscriptionBuilder().subscribe([
-        tables.transferIntents.where(r => r.status.eq('Approved')),
-        tables.transferIntents.where(r => r.status.eq('Held')),
-      ]);
+      // The 2.10 query builder cannot compare the TransferIntentStatus enum column
+      // with a literal, so subscribe to the table. syncHeldRow and
+      // settleApprovedIntent only act on Held / Approved rows.
+      conn.subscriptionBuilder().subscribe([tables.transferIntents]);
     })
     .onConnectError((_ctx, err) => {
       console.error('[worker] Connection error:', err);

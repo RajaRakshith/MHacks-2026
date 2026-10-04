@@ -114,3 +114,56 @@ test('missing NESSIE_ACCOUNT_ID fails', async () => {
     else process.env.NESSIE_ACCOUNT_ID = prevAcct;
   }
 });
+
+async function withNessieResponse(body: unknown, run: () => Promise<void>) {
+  const prevKey = process.env.NESSIE_API_KEY;
+  const prevAcct = process.env.NESSIE_ACCOUNT_ID;
+  const prevFetch = globalThis.fetch;
+  globalThis.fetch = (async () =>
+    new Response(JSON.stringify(body), { status: 201 })) as typeof fetch;
+  try {
+    process.env.NESSIE_API_KEY = 'k';
+    process.env.NESSIE_ACCOUNT_ID = 'acc-demo';
+    await run();
+  } finally {
+    globalThis.fetch = prevFetch;
+    if (prevKey === undefined) delete process.env.NESSIE_API_KEY;
+    else process.env.NESSIE_API_KEY = prevKey;
+    if (prevAcct === undefined) delete process.env.NESSIE_ACCOUNT_ID;
+    else process.env.NESSIE_ACCOUNT_ID = prevAcct;
+  }
+}
+
+const demoRequest = {
+  intentId: 11n,
+  userId: 'demo-user',
+  amountCents: 5000n,
+  destinationAccount: 'payee-1',
+};
+
+test('reads the id from Nessie objectCreated._id', async () => {
+  await withNessieResponse(
+    { code: 201, message: 'Created transfer', objectCreated: { _id: 'txn-created' } },
+    async () => {
+      const result = await executeNessieTransfer(demoRequest);
+      assert.equal(result.ok, true);
+      if (result.ok) assert.equal(result.transferId, 'txn-created');
+    }
+  );
+});
+
+test('reads the id from Nessie objectCreated.id', async () => {
+  await withNessieResponse({ objectCreated: { id: 'txn-created-id' } }, async () => {
+    const result = await executeNessieTransfer(demoRequest);
+    assert.equal(result.ok, true);
+    if (result.ok) assert.equal(result.transferId, 'txn-created-id');
+  });
+});
+
+test('2xx with no transfer id fails instead of inventing one', async () => {
+  await withNessieResponse({ code: 201, objectCreated: {} }, async () => {
+    const result = await executeNessieTransfer(demoRequest);
+    assert.equal(result.ok, false);
+    if (!result.ok) assert.match(result.error, /missing transfer id/);
+  });
+});

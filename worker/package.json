@@ -7,10 +7,11 @@
     "dev": "tsx watch --env-file-if-exists=../.env src/transfer-worker.ts",
     "start": "node dist/transfer-worker.js",
     "build": "tsc",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit --rootDir .. --allowImportingTsExtensions"
   },
   "dependencies": {
-    "spacetimedb": "^1.12.0"
+    "spacetimedb": "2.10.*"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

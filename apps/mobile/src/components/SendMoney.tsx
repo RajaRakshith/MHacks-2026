@@ -51,6 +51,10 @@ export function SendMoney() {
       setError("Cannot reach the database. Start everything with pnpm dev.");
       return;
     }
+    if (!payee.trim()) {
+      setError("Choose or enter a payee before sending.");
+      return;
+    }
     let maxId = -1n;
     for (const row of intents) {
       if (row.userId === DEMO_USER_ID && row.id > maxId) maxId = row.id;
