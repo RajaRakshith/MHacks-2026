@@ -14,9 +14,19 @@ export type NessieTransferResult =
   | { ok: true; transferId: string }
   | { ok: false; error: string };
 
+/** The only user whose transfers may post to NESSIE_ACCOUNT_ID. */
+export const DEMO_ACCOUNT_USER_ID = 'demo-user';
+
 export async function executeNessieTransfer(
   request: NessieTransferRequest
 ): Promise<NessieTransferResult> {
+  if (request.userId !== DEMO_ACCOUNT_USER_ID) {
+    return {
+      ok: false,
+      error: `refusing to debit NESSIE_ACCOUNT_ID for ${request.userId}`,
+    };
+  }
+
   const apiKey = process.env.NESSIE_API_KEY;
   const accountId = process.env.NESSIE_ACCOUNT_ID;
   if (!apiKey) return { ok: false, error: 'NESSIE_API_KEY is not set' };

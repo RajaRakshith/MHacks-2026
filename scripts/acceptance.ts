@@ -28,9 +28,9 @@ function isHeld(status: unknown): boolean {
   return false;
 }
 
-function isApproved(status: unknown): boolean {
-  if (status && typeof status === 'object' && 'tag' in status) return (status as { tag: string }).tag === 'Approved';
-  if (Array.isArray(status)) return status[0] === 1; // Pending=0, Approved=1
+function isFailed(status: unknown): boolean {
+  if (status && typeof status === 'object' && 'tag' in status) return (status as { tag: string }).tag === 'Failed';
+  if (Array.isArray(status)) return status[0] === 4; // Pending=0, Approved=1, Held=2, Completed=3, Failed=4
   return false;
 }
 
@@ -73,14 +73,21 @@ call('request_transfer', JSON.stringify({
 }));
 const other = (await sql("SELECT id, user_id, status FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
 if (!other || isHeld(other[2])) throw new Error(`someone-else should not be Held, got ${JSON.stringify(other)}`);
-// fail_transfer only accepts Approved. Mark it Failed immediately so the worker cannot send it from NESSIE_ACCOUNT_ID.
-call('fail_transfer', JSON.stringify({
-  intentId: Number(other[0]),
-  reason: 'acceptance: do not send',
-}));
-const failed = (await sql("SELECT id, status FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
-if (!failed || Number(failed[0]) !== Number(other[0]) || isApproved(failed[1])) {
-  throw new Error(`someone-else Approved intent was left sendable, got ${JSON.stringify(failed)}`);
+// The worker refuses to post any user other than demo-user to NESSIE_ACCOUNT_ID.
+// fail_transfer only clears a still-Approved row when the worker is not running; it is not the debit gate.
+try {
+  call('fail_transfer', JSON.stringify({
+    intentId: Number(other[0]),
+    reason: 'acceptance: do not send',
+  }));
+} catch {
+  // A running worker may already have failed this row without calling Nessie.
+}
+const failed = (await sql("SELECT id, status, nessie_transfer_id FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
+const storedTransferId = failed?.[2];
+const sent = storedTransferId != null && storedTransferId !== '' && !(typeof storedTransferId === 'object' && storedTransferId !== null && 'none' in storedTransferId);
+if (!failed || Number(failed[0]) !== Number(other[0]) || !isFailed(failed[1]) || sent) {
+  throw new Error(`someone-else must be Failed with no Nessie transfer id, got ${JSON.stringify(failed)}`);
 }
 
 let expireFailed = false;
