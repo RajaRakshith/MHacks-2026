@@ -38,3 +38,10 @@ Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). V
 ## Biggest risks to de-risk early
 
 Twilio merge + Media Streams setup is the hardest infra piece — get a basic "third participant hears audio" working first. Then STT latency/chunking, then the policy gate, then polish. False-positive handling (user override with explicit confirm) is worth mentioning to judges so it doesn't look naive.
+
+## Repo layout (multi-branch)
+
+| Branch / folder | Owns |
+|-----------------|------|
+| `LocalServer` / `twilio` | Full `scamshield-bridge` (Twilio → Grok STT → SpacetimeDB) |
+| `elevenlabs` (this branch) | TTS skeleton in `scamshield-bridge/src/tts.js` — merge via [scamshield-bridge/docs/MERGE.md](scamshield-bridge/docs/MERGE.md) |

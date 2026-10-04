@@ -1,0 +1,13 @@
+{
+  "name": "scamshield-bridge-tts",
+  "version": "0.1.0",
+  "description": "ElevenLabs TTS skeleton — merges into scamshield-bridge on LocalServer/twilio branch",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test:tts": "node test/tts.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
