@@ -33,10 +33,27 @@ export async function sql(query) {
   return result.rows.map((row) => (Array.isArray(row) ? Object.fromEntries(cols.map((c, i) => [c, row[i]])) : row));
 }
 
-// Rows come back in SATS-JSON: options/enums are {"some": v} | {"0": v} | {"Active": []} ...
-const unwrapOption = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? (v.some ?? v['0'] ?? null) : v);
+// SATS-JSON sums arrive two ways:
+//   named (reducer args / some HTTP): { some: v } / { none: [] } / { Active: [] }
+//   positional (Maincloud SQL):       [0, v] / [1, []] for option; [0, []] Active, [1, []] Ended
+export function unwrapOption(v) {
+  if (v == null) return null;
+  if (typeof v !== 'object') return v;
+  if (Array.isArray(v)) return v[0] === 0 ? v[1] : null;
+  if ('some' in v) return v.some;
+  if ('none' in v) return null;
+  if ('0' in v) return v['0'];
+  if ('1' in v) return null;
+  return v;
+}
 const field = (row, camel) => row[camel] ?? row[camel.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)];
-const isActive = (status) => status && typeof status === 'object' && ('Active' in status || '0' in status);
+export function isActive(status) {
+  if (status == null) return false;
+  if (status === 'Active' || status === 0) return true;
+  if (typeof status !== 'object') return false;
+  if (Array.isArray(status)) return status[0] === 0;
+  return status.tag === 'Active' || 'Active' in status;
+}
 
 // ---- Call lifecycle (reducers from spacetimedb/src/index.ts) ----
 

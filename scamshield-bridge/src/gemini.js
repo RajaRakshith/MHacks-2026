@@ -2,7 +2,7 @@ import { SCORING_GUIDE, normalizeRisk } from './risk.js';
 
 export async function scoreWithGemini(transcript, prevScore = 0) {
   if (!process.env.GEMINI_API_KEY) throw new Error('GEMINI_API_KEY not set');
-  const model = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+  const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
   const base = (process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com').replace(/\/$/, '');
   const url = `${base}/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`;
   const res = await fetch(url, {
@@ -16,7 +16,10 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
         role: 'user',
         parts: [{ text: `The previous score was ${prevScore}.\n\n${transcript}` }],
       }],
-      generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+      generationConfig: {
+        responseMimeType: 'application/json',
+        thinkingConfig: { thinkingLevel: 'low' },
+      },
     }),
     signal: AbortSignal.timeout(Number(process.env.GEMINI_TIMEOUT_MS || 8000)),
   });

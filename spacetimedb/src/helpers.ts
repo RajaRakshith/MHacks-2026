@@ -10,7 +10,10 @@ export function getRiskHoldThreshold(ctx: Ctx): number {
 }
 
 export function findActiveCallSession(ctx: Ctx, userId: string) {
-  for (const session of ctx.db.callSessions.byUserAndStatus.filter(userId)) {
+  // userId is a single-column btree index. byUserAndStatus is a 2-column
+  // index; passing only a string there is treated as an iterable of chars
+  // and crashes the module ("too many elements").
+  for (const session of ctx.db.callSessions.userId.filter(userId)) {
     if (session.status.tag === 'Active') {
       return session;
     }

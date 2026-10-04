@@ -61,4 +61,17 @@ try {
   missing = e.message.includes('GEMINI_API_KEY');
 }
 check('missing GEMINI_API_KEY throws', missing, missing);
+
+process.env.GEMINI_API_KEY = 'gk';
+delete process.env.GEMINI_MODEL;
+const def = mockHttp(9404, { geminiScore: 10 });
+process.env.GEMINI_BASE_URL = 'http://localhost:9404';
+await scoreWithGemini(transcript, 0);
+check('default model is gemini-3.5-flash-lite',
+  String(def.calls[0]?.[2] || '').includes('/models/gemini-3.5-flash-lite:generateContent'),
+  def.calls[0]?.[2]);
+check('does not send temperature (unsupported on Gemini 3 Flash)',
+  !Object.hasOwn(JSON.parse(def.calls[0][1]).generationConfig, 'temperature'),
+  JSON.parse(def.calls[0][1]).generationConfig);
+def.close();
 process.exit();

@@ -21,7 +21,7 @@ export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
           score: chatScore, signals: ['impersonation', 'otp_request'], action: 'hold_transfers',
           warning: 'DO NOT SHARE THE CODE', evidence: 'read me the code' }) } }] }));
       } else if (String(req.url).includes(':generateContent')) {
-        calls.push(['gemini', buf.toString()]);
+        calls.push(['gemini', buf.toString(), req.url]);
         if (geminiScore == null) { res.writeHead(503); return res.end('down'); }
         const payload = typeof geminiScore === 'object'
           ? geminiScore
@@ -33,7 +33,7 @@ export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
           candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }],
         }));
       } else if (req.url.startsWith('/v1/text-to-speech/')) {
-        calls.push(['tts', req.url]);
+        calls.push(['tts', req.url, buf.toString()]);
         res.end(Buffer.alloc(800, 0x7f)); // 0.1s of mu-law = 5 Twilio frames
       } else if (req.url.endsWith('/sql')) {
         // Shaped like SpacetimeDB's SQL response for call_sessions (snake_case columns, SATS-JSON options/enums).

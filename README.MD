@@ -78,8 +78,8 @@ npm run spacetime:generate
 npm run bridge:dev
 # terminal 4 — Nessie transfer worker
 npm run worker:dev
-# terminal 5 — expose the call server to Twilio
-ngrok http 8080
+# terminal 5 — stable public URL (set NGROK_DOMAIN in .env first)
+npm run tunnel
 ```
 
 Point your Twilio number's **A call comes in** webhook at `https://YOUR-NGROK-HOST/twilio/voice?userId=demo-user` (HTTP POST). The `userId` must be the same one the bank app passes to `request_transfer`.

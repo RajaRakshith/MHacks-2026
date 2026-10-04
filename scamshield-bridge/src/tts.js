@@ -1,8 +1,57 @@
 // ElevenLabs TTS → µ-law 8 kHz for injection back into a Twilio Media Stream.
 // Docs: https://elevenlabs.io/docs/api-reference/text-to-speech/convert
+// Alert beeps are generated here (same 8 kHz µ-law) and prepended — not spoken by the model.
+
+const SAMPLE_RATE = 8000;
+const BEEP_HZ = 880;
+const BEEP_ON_MS = 100;
+const BEEP_OFF_MS = 70;
+const BEEP_COUNT = 3;
+const BEEP_AMPLITUDE = 22000;
 
 const DEFAULT_WARNING =
-  process.env.SCAM_WARNING_TEXT || 'This is a scam call, please hang up.';
+  process.env.SCAM_WARNING_TEXT ||
+  'This is ScamShield, protecting your calls. This is a scam. Hang up now.';
+
+function pcm16ToMulaw(sample) {
+  const BIAS = 0x84;
+  const CLIP = 32635;
+  let sign = 0;
+  if (sample < 0) {
+    sign = 0x80;
+    sample = -sample;
+  }
+  if (sample > CLIP) sample = CLIP;
+  sample += BIAS;
+  let exponent = 7;
+  for (let expMask = 0x4000; (sample & expMask) === 0 && exponent > 0; exponent--, expMask >>= 1) {}
+  const mantissa = (sample >> (exponent + 3)) & 0x0F;
+  return ~(sign | (exponent << 4) | mantissa) & 0xFF;
+}
+
+function toneMulaw(hz, ms) {
+  const n = Math.round(SAMPLE_RATE * (ms / 1000));
+  const buf = Buffer.alloc(n);
+  for (let i = 0; i < n; i++) {
+    const pcm = Math.round(Math.sin((2 * Math.PI * hz * i) / SAMPLE_RATE) * BEEP_AMPLITUDE);
+    buf[i] = pcm16ToMulaw(pcm);
+  }
+  return buf;
+}
+
+function silenceMulaw(ms) {
+  return Buffer.alloc(Math.round(SAMPLE_RATE * (ms / 1000)), 0xff);
+}
+
+/** Three short 880 Hz tones in Twilio-native µ-law @ 8 kHz. */
+export function alertBeepMulaw() {
+  const parts = [];
+  for (let i = 0; i < BEEP_COUNT; i++) {
+    parts.push(toneMulaw(BEEP_HZ, BEEP_ON_MS));
+    if (i < BEEP_COUNT - 1) parts.push(silenceMulaw(BEEP_OFF_MS));
+  }
+  return Buffer.concat(parts);
+}
 
 /** Synthesize the scam warning as raw µ-law @ 8 kHz (Twilio-native). */
 export async function synthesizeScamWarning(text = DEFAULT_WARNING) {
@@ -25,6 +74,13 @@ export async function synthesizeScamWarning(text = DEFAULT_WARNING) {
     body: JSON.stringify({
       text,
       model_id: process.env.ELEVENLABS_TTS_MODEL || 'eleven_multilingual_v2',
+      voice_settings: {
+        stability: 0.35,
+        similarity_boost: 0.75,
+        style: 0.45,
+        use_speaker_boost: true,
+        speed: 1.08,
+      },
     }),
   });
 
@@ -32,7 +88,7 @@ export async function synthesizeScamWarning(text = DEFAULT_WARNING) {
     throw new Error(`ElevenLabs TTS ${res.status}: ${await res.text()}`);
   }
 
-  return Buffer.from(await res.arrayBuffer());
+  return Buffer.concat([alertBeepMulaw(), Buffer.from(await res.arrayBuffer())]);
 }
 
 /**

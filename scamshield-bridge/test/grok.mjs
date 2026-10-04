@@ -1,4 +1,5 @@
 import { mockHttp, mockGrok, fakeTwilioCall, startBridge, wait, check } from './mocks.mjs';
+import { alertBeepMulaw } from '../src/tts.js';
 
 const http = mockHttp(9101, { geminiScore: 94 });
 const grok = mockGrok(9102, (ws, ev, got) => {
@@ -39,7 +40,8 @@ check('Gemini called once with full transcript',
 check('record_risk_event is Gemini 94, not Grok tool 11',
   JSON.stringify(arg('record_risk_event')) === '[100,"impersonation","read me the code",94,{"some":"DO NOT SHARE THE CODE"}]', arg('record_risk_event'));
 const sent = call.back.map((m) => JSON.parse(m));
-check('elevenlabs TTS warning spoken once (5 frames, streamSid set)',
-  http.calls.filter((c) => c[0] === 'tts').length === 1 && sent.length === 5 && sent.every((m) => m.event === 'media' && m.streamSid === 'MZ1'), sent.length);
+const ttsFrames = Math.ceil((alertBeepMulaw().length + 800) / 160);
+check(`elevenlabs TTS warning spoken once (${ttsFrames} frames: beeps + speech, streamSid set)`,
+  http.calls.filter((c) => c[0] === 'tts').length === 1 && sent.length === ttsFrames && sent.every((m) => m.event === 'media' && m.streamSid === 'MZ1'), sent.length);
 check("grok's own audio never sent to twilio", !sent.some((m) => m.media?.payload === 'AAAA'), sent);
 process.exit();
