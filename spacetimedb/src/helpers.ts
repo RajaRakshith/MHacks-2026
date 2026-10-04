@@ -1,5 +1,6 @@
 import { SenderError, type InferSchema, type ReducerCtx } from 'spacetimedb/server';
 import { RISK_HOLD_THRESHOLD } from './constants';
+import { BANK_HOLD_REASON } from './policy';
 import { spacetimedb } from './schema';
 
 type Ctx = ReducerCtx<InferSchema<typeof spacetimedb>>;
@@ -37,6 +38,6 @@ export function requireTransferIntent(ctx: Ctx, intentId: bigint) {
   return intent;
 }
 
-export function buildHoldReason(riskScore: number, threshold: number): string {
-  return `Transfer held: active call risk score is ${riskScore}% (threshold ${threshold}%). Do not send money while this call is active.`;
+export function buildHoldReason(_riskScore: number, _threshold: number): string {
+  return BANK_HOLD_REASON;
 }

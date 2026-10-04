@@ -12,6 +12,7 @@ export const TransferIntentStatus = t.enum('TransferIntentStatus', {
   Completed: t.unit(),
   Failed: t.unit(),
   Released: t.unit(),
+  Expired: t.unit(),
 });
 
 export const callSession = table(
@@ -97,6 +98,7 @@ export const transferIntent = table(
     riskScoreAtDecision: t.u8(),
     nessieTransferId: t.option(t.string()),
     completedAt: t.option(t.timestamp()),
+    expiresAt: t.option(t.timestamp()),
   }
 );
 
@@ -134,12 +136,48 @@ export const config = table(
   }
 );
 
+export const accountSnapshot = table(
+  { name: 'account_snapshot', public: true },
+  {
+    id: t.u8().primaryKey(),
+    name: t.string(),
+    nickname: t.string(),
+    last4: t.string(),
+    balance: t.f64(),
+    updatedAt: t.timestamp(),
+  }
+);
+
+export const activity = table(
+  { name: 'activity', public: true },
+  {
+    id: t.string().primaryKey(),
+    kind: t.string(),
+    date: t.string(),
+    description: t.string(),
+    amount: t.f64(),
+    sortIndex: t.u32(),
+  }
+);
+
+export const payee = table(
+  { name: 'payees', public: true },
+  {
+    name: t.string().primaryKey(),
+    nessieAccountId: t.string(),
+    trusted: t.bool(),
+  }
+);
+
 export const spacetimedb = schema(
   callSession,
   riskEvent,
   transcriptSegment,
   transferIntent,
-  config
+  config,
+  accountSnapshot,
+  activity,
+  payee
 );
 
 export default spacetimedb;

@@ -1,3 +1,4 @@
+import { Timestamp } from 'spacetimedb';
 import { SenderError, t } from 'spacetimedb/server';
 import { INITIAL_RISK_SCORE, RISK_HOLD_THRESHOLD } from './constants';
 import {
@@ -7,6 +8,7 @@ import {
   requireTransferIntent,
   getRiskHoldThreshold,
 } from './helpers';
+import { canExpireHeld, HOLD_TTL_MS, shouldHold } from './policy';
 import { spacetimedb } from './schema';
 
 export { spacetimedb } from './schema';
@@ -176,7 +178,7 @@ spacetimedb.reducer(
     const threshold = getRiskHoldThreshold(ctx);
     const activeSession = findActiveCallSession(ctx, userId);
     const riskScore = activeSession?.riskScore ?? 0;
-    const shouldHold = activeSession !== null && riskScore >= threshold;
+    const shouldHoldNow = shouldHold(activeSession !== null, riskScore, threshold);
 
     ctx.db.transferIntents.insert({
       id: 0n,
@@ -186,13 +188,16 @@ spacetimedb.reducer(
       amountCents,
       destinationAccount,
       memo,
-      status: shouldHold ? { tag: 'Held' } : { tag: 'Approved' },
-      holdReason: shouldHold
+      status: shouldHoldNow ? { tag: 'Held' } : { tag: 'Approved' },
+      holdReason: shouldHoldNow
         ? buildHoldReason(riskScore, threshold)
         : undefined,
       riskScoreAtDecision: riskScore,
       nessieTransferId: undefined,
       completedAt: undefined,
+      expiresAt: shouldHoldNow
+        ? Timestamp.fromDate(new Date(ctx.timestamp.toDate().getTime() + HOLD_TTL_MS))
+        : undefined,
     });
   }
 );
@@ -253,6 +258,51 @@ spacetimedb.reducer(
       force && stillHot ? `User override at ${riskScore}% risk` : undefined;
     intent.riskScoreAtDecision = riskScore;
     ctx.db.transferIntents.id.update(intent);
+  }
+);
+
+spacetimedb.reducer('expire_held_transfer', { intentId: t.u64() }, (ctx, { intentId }) => {
+  const intent = requireTransferIntent(ctx, intentId);
+  const expiresAtMs = intent.expiresAt ? intent.expiresAt.toDate().getTime() : null;
+  if (!canExpireHeld(intent.status.tag, expiresAtMs, ctx.timestamp.toDate().getTime())) {
+    throw new SenderError('Transfer is not a due hold');
+  }
+  intent.status = { tag: 'Expired' };
+  ctx.db.transferIntents.id.update(intent);
+});
+
+spacetimedb.reducer(
+  'upsert_account_snapshot',
+  { name: t.string(), nickname: t.string(), last4: t.string(), balance: t.f64() },
+  (ctx, args) => {
+    const row = ctx.db.accountSnapshot.id.find(0);
+    const next = { id: 0, ...args, updatedAt: ctx.timestamp };
+    if (row) ctx.db.accountSnapshot.id.update({ ...row, ...next });
+    else ctx.db.accountSnapshot.insert(next);
+  }
+);
+
+const ActivityRow = t.object('ActivityRow', {
+  id: t.string(),
+  kind: t.string(),
+  date: t.string(),
+  description: t.string(),
+  amount: t.f64(),
+  sortIndex: t.u32(),
+});
+
+spacetimedb.reducer('replace_activity', { rows: t.array(ActivityRow) }, (ctx, { rows }) => {
+  for (const old of [...ctx.db.activity.iter()]) ctx.db.activity.id.delete(old.id);
+  for (const row of rows) ctx.db.activity.insert(row);
+});
+
+spacetimedb.reducer(
+  'upsert_payee',
+  { name: t.string(), nessieAccountId: t.string(), trusted: t.bool() },
+  (ctx, { name, nessieAccountId, trusted }) => {
+    const row = ctx.db.payees.name.find(name);
+    if (row) ctx.db.payees.name.update({ ...row, nessieAccountId, trusted });
+    else ctx.db.payees.insert({ name, nessieAccountId, trusted });
   }
 );
 
