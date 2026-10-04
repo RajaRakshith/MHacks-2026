@@ -1,0 +1,17 @@
+{
+  "name": "@scamshield/spacetimedb-module",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "spacetime build",
+    "publish:local": "spacetime publish --server local scamshield",
+    "publish:cloud": "spacetime publish --server maincloud scamshield"
+  },
+  "dependencies": {
+    "spacetimedb": "^1.12.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.2"
+  }
+}

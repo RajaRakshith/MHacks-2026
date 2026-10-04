@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+worker/src/module_bindings/*
+!worker/src/module_bindings/index.ts
+!worker/src/module_bindings/README.md
+spacetime.local.json
+spacetime.*.local.json

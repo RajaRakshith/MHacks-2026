@@ -38,3 +38,13 @@ Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). V
 ## Biggest risks to de-risk early
 
 Twilio merge + Media Streams setup is the hardest infra piece — get a basic "third participant hears audio" working first. Then STT latency/chunking, then the policy gate, then polish. False-positive handling (user override with explicit confirm) is worth mentioning to judges so it doesn't look naive.
+
+## SpacetimeDB backend (this repo)
+
+The live backend lives in `spacetimedb/` — three tables (`call_sessions`, `risk_events`, `transfer_intents`) plus reducers including the atomic `request_transfer` money gate. A transfer worker in `worker/` subscribes to approved intents and executes Nessie transfers.
+
+**Setup:** see [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md).
+
+## Call ingestion server
+
+Twilio audio → Grok STT (primary) + ElevenLabs (backup) → Grok risk scoring → SpacetimeDB. See [docs/INGESTION.md](docs/INGESTION.md).
