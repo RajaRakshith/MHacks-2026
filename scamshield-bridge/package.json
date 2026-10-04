@@ -1,12 +1,12 @@
 {
   "name": "scamshield-bridge",
   "version": "1.0.0",
-  "description": "ScamShield local server: Twilio Media Streams -> Grok Voice (ElevenLabs failover) -> SpacetimeDB",
+  "description": "ScamShield call server: Twilio Media Streams -> Grok Voice STT -> Gemini score -> SpacetimeDB",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test/gemini.mjs && node test/grok.mjs && node test/gemini-fail.mjs && node test/grok-fail.mjs",
+    "test": "node test/gemini.mjs && node test/grok.mjs && node test/gemini-fail.mjs && node test/grok-fail.mjs && node test/boot.mjs",
     "test:tts": "node test/tts.mjs"
   },
   "keywords": [],

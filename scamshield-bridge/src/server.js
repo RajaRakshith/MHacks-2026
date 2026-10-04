@@ -4,6 +4,7 @@
 //   GET  /health         status + active calls
 //   POST /calls/:callSid/warn   speak the ElevenLabs scam warning into a live call now (demo/testing)
 import './env.js';
+import { missingApiKeys } from './keys.js';
 import http from 'node:http';
 import { WebSocketServer } from 'ws';
 import { CallSession, activeSessions } from './callSession.js';
@@ -57,10 +58,9 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       return res.end(JSON.stringify({
         ok: true,
-        engine: process.env.STT_ENGINE === 'elevenlabs' ? 'elevenlabs' : 'grok',
-        failover: process.env.FAILOVER !== 'false',
         keys: {
           xai: !!process.env.XAI_API_KEY,
+          gemini: !!process.env.GEMINI_API_KEY,
           elevenlabs: !!process.env.ELEVENLABS_API_KEY,
         },
         spacetime: `${process.env.SPACETIME_HOST || process.env.SPACETIME_URI || 'http://127.0.0.1:3000'} / ${process.env.SPACETIME_DB || process.env.SPACETIME_DATABASE || 'scamshield-dev'}`,
@@ -78,11 +78,13 @@ const server = http.createServer(async (req, res) => {
 
 new WebSocketServer({ server, path: '/media-stream' }).on('connection', (ws) => new CallSession(ws));
 
+const missing = missingApiKeys();
+if (missing.length) {
+  console.error(`missing required keys: ${missing.join(', ')}`);
+  process.exit(1);
+}
+
 server.listen(PORT, () => {
   console.log(`ScamShield listening on http://localhost:${PORT}`);
-  console.log(`  engine: ${process.env.STT_ENGINE === 'elevenlabs' ? 'elevenlabs' : 'grok'}` +
-    (process.env.FAILOVER === 'false' ? '' : ' (elevenlabs failover on)'));
-  for (const [k, label] of [['XAI_API_KEY', 'xAI'], ['ELEVENLABS_API_KEY', 'ElevenLabs']]) {
-    if (!process.env[k]) console.log(`  warning: ${k} not set (${label})`);
-  }
+  console.log('  stt: grok-voice  score: gemini  tts: elevenlabs');
 });
