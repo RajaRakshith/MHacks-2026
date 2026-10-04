@@ -7,7 +7,7 @@ import { useProcedure, useReducer, useTable } from "spacetimedb/react";
 import { RiskMeter } from "../../components/RiskMeter";
 import { Body, Button, Card, Empty, Notice, Screen, SectionLabel, StatusPill } from "../../components/ui";
 import { clock } from "../../lib/format";
-import { relayPost } from "../../lib/relay";
+import { postRelay } from "../../lib/relay";
 import { useTheme } from "../../lib/theme";
 import { useShield } from "../../lib/useShield";
 
@@ -63,7 +63,7 @@ export default function ShieldScreen() {
     setBusy(true);
     setNotice(null);
     setShowAll(false);
-    const reply = await relayPost(path, { scenario });
+    const reply = await postRelay(path, { scenario });
     setBusy(false);
     if (!reply.ok) setNotice(reply.error ?? "Could not start the call.");
     else if (reply.message) setNotice(reply.message);
@@ -74,7 +74,7 @@ export default function ShieldScreen() {
     setBusy(true);
     setNotice(null);
     setShowAll(false);
-    const reply = await relayPost("/type/reset", {});
+    const reply = await postRelay("/type/reset", {});
     setBusy(false);
     setNotice(reply.ok ? "New conversation started." : reply.error ?? "Could not reset.");
   }
@@ -101,7 +101,7 @@ export default function ShieldScreen() {
         {warning && <Notice tone={warning.kind === "caution" ? "warning" : "critical"} icon="warning" title={warning.message} />}
         {shield.armed && shield.armedUntil && <Notice tone="brand" icon="lock-closed" title={`Transfers protected until ${clock(shield.armedUntil)}`} />}
 
-        <Button variant="primary" icon="shield-checkmark" label="Watch this call" onPress={() => void startCall("/protect")} disabled={busy || live} />
+        <Button variant="primary" icon="shield-checkmark" label="Protect this call" onPress={() => void startCall("/protect")} disabled={busy || live} />
         <View style={{ flexDirection: "row", gap: 10 }}>
           <Button label="End call" onPress={() => void onEndCall()} disabled={!live} style={{ flex: 1 }} />
           <Button label="I'm on a suspicious call" onPress={() => void armGuard().catch(() => setNotice("Could not arm the guard."))} style={{ flex: 2 }} />
@@ -113,7 +113,7 @@ export default function ShieldScreen() {
       <Card>
         <SectionLabel>Live transcript</SectionLabel>
         {lines.length === 0 ? (
-          <Empty>{live ? "Listening…" : "No call yet. Press Watch this call when a call feels wrong."}</Empty>
+          <Empty>{live ? "Listening…" : "No call yet. Press Protect this call when a call feels wrong."}</Empty>
         ) : (
           <View style={[styles.transcript, { backgroundColor: t.sunken }]}>
             {hidden > 0 && (
@@ -185,7 +185,7 @@ export default function ShieldScreen() {
               </Pressable>
             ))}
           </View>
-          <Button label="Play scenario" onPress={() => void startCall("/simulate")} disabled={busy} />
+          <Button label="Simulate call" onPress={() => void startCall("/simulate")} disabled={busy} />
         </Card>
       )}
     </Screen>
