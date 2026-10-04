@@ -208,7 +208,7 @@ wss.on("connection", (socket, req) => {
 });
 
 httpServer.listen(PORT, () => {
-  console.log(`ScamShield Twilio POC listening on http://localhost:${PORT}`);
+  console.log(`Watchdog Twilio POC listening on http://localhost:${PORT}`);
   console.log(`  POST /voice   — Twilio voice webhook (TwiML + Media Stream)`);
   console.log(`  WS   /stream  — Twilio Media Streams`);
   console.log(`  GET  /health  — liveness`);

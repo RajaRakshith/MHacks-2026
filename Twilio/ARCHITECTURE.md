@@ -1,6 +1,6 @@
 # Twilio inbound Media Streams — architecture
 
-ScamShield ingests merged/scam calls through **Twilio Media Streams**. A **media bridge server** (this repo’s `server.js`) sits between Twilio and cloud STT/TTS—you cannot point Twilio directly at ElevenLabs or Grok Voice. **SpacetimeDB** holds live call and transfer state; it does not terminate the Twilio WebSocket (see [Bridge vs SpacetimeDB](#bridge-vs-spacetimedb)).
+Watchdog ingests merged/scam calls through **Twilio Media Streams**. A **media bridge server** (this repo’s `server.js`) sits between Twilio and cloud STT/TTS—you cannot point Twilio directly at ElevenLabs or Grok Voice. **SpacetimeDB** holds live call and transfer state; it does not terminate the Twilio WebSocket (see [Bridge vs SpacetimeDB](#bridge-vs-spacetimedb)).
 
 ## Architecture (current POC + target)
 
@@ -9,7 +9,7 @@ Solid lines = **implemented today** in `Twilio/server.js`. Dotted lines = **plan
 ```mermaid
 flowchart TB
   subgraph telephony [Telephony]
-    Phone[Caller phone<br/>victim merges ScamShield #]
+    Phone[Caller phone<br/>victim merges Watchdog #]
     Twilio[Twilio Programmable Voice<br/>Media Streams]
   end
 
@@ -124,7 +124,7 @@ References: [ElevenLabs realtime STT](https://elevenlabs.io/docs/api-reference/s
 | `call_sessions`, `transfer_intents`, live risk | Writes via client / `call` reducer | ✅ Subscriptions to UI |
 | Optional `POST /voice` TwiML on STDB route | Could duplicate; Stream URL still points at **bridge** WSS | Partial |
 
-For the hack demo, the victim **merges** the scam call with ScamShield’s Twilio number—it still arrives as an **inbound call**, so this POC matches production ingestion.
+For the hack demo, the victim **merges** the scam call with Watchdog’s Twilio number—it still arrives as an **inbound call**, so this POC matches production ingestion.
 
 ## STT provider options (same bridge, different adapter)
 

@@ -1,4 +1,4 @@
-# ScamShield bridge (call server)
+# Watchdog bridge (call server)
 
 Twilio (call audio) → Grok Voice (live transcript) → Gemini (risk score) → SpacetimeDB module in [`../spacetimedb`](../spacetimedb).
 ElevenLabs is TTS for the spoken warning only.
@@ -24,7 +24,7 @@ Twilio ──wss /media-stream──▶ CallSession ──wss──▶ Grok Voic
 
 ## Run
 
-Config lives in the **repo-root** `.env` (copy `../.env.example`). A `scamshield-bridge/.env` is also read and takes precedence.
+Config lives in the **repo-root** `.env` (copy `../.env.example`). A `watchdog-bridge/.env` is also read and takes precedence.
 
 From the repo root:
 ```powershell
@@ -32,7 +32,7 @@ npm install
 npm run bridge:test   # mocked tests: Grok STT, Gemini score, fail-loud scoring, boot keys (no keys needed)
 npm run bridge:dev    # http://localhost:8080, restarts on edits
 ```
-`npm run test:tts --workspace=scamshield-bridge` synthesizes the warning with your real ElevenLabs key and writes `scam-warning.ulaw`.
+`npm run test:tts --workspace=watchdog-bridge` synthesizes the warning with your real ElevenLabs key and writes `scam-warning.ulaw`.
 
 The process exits before listen if `XAI_API_KEY`, `GEMINI_API_KEY`, or `ELEVENLABS_API_KEY` is missing or empty.
 
@@ -51,7 +51,7 @@ Watch the terminal on a test call: `grok connected`, `spacetime call_sessions.id
 ## Files
 - `src/server.js` — HTTP routes + the `/media-stream` websocket; refuses to listen without required API keys
 - `src/keys.js` — `missingApiKeys()` for `XAI_API_KEY`, `GEMINI_API_KEY`, `ELEVENLABS_API_KEY`
-- `src/env.js` — loads `scamshield-bridge/.env` then the repo-root `.env`
+- `src/env.js` — loads `watchdog-bridge/.env` then the repo-root `.env`
 - `src/callSession.js` — one per call: Grok STT, Gemini score on each flush, writes to SpacetimeDB in order, triggers the TTS warning
 - `src/engines/grok.js` — Grok Voice realtime STT (prompt is `INSTRUCTIONS` at the top)
 - `src/gemini.js` — Gemini risk score on each transcript flush

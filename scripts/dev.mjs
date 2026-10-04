@@ -35,7 +35,7 @@ function readEnv() {
 
 const env = { ...readEnv(), ...process.env };
 const uri = env.SPACETIME_URI || "ws://127.0.0.1:3000";
-const database = env.SPACETIME_DATABASE || env.SPACETIME_DB || "scamshield-dev";
+const database = env.SPACETIME_DATABASE || env.SPACETIME_DB || "watchdog-dev";
 const httpUrl = uri.replace(/^ws/, "http").replace(/\/+$/, "");
 const host = new URL(httpUrl);
 const isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(host.hostname);
@@ -183,7 +183,7 @@ async function main() {
   }
 
   start("worker", "npm", ["run", "worker:dev"]);
-  start("web", "pnpm", ["--filter", "@scamshield/web", "dev"], { VITE_SPACETIME_URI: uri, VITE_SPACETIME_DB: database });
+  start("web", "pnpm", ["--filter", "@watchdog/web", "dev"], { VITE_SPACETIME_URI: uri, VITE_SPACETIME_DB: database });
 }
 
 main().catch((e) => {

@@ -22,7 +22,7 @@ import { DbConnection, tables } from './module_bindings/index.js';
 
 const SPACETIME_URI =
   process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000';
-const DATABASE_NAME = process.env.SPACETIME_DATABASE ?? 'scamshield-dev';
+const DATABASE_NAME = process.env.SPACETIME_DATABASE ?? 'watchdog-dev';
 const TOKEN = process.env.SPACETIME_TOKEN;
 
 const inFlight = new Set<string>();
@@ -142,5 +142,5 @@ function connect() {
   builder.build();
 }
 
-console.log('[worker] ScamShield transfer worker starting…');
+console.log('[worker] Watchdog transfer worker starting…');
 connect();

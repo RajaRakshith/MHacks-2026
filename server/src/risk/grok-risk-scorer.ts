@@ -7,7 +7,7 @@ export type RiskAssessment = {
   signals: string[];
 };
 
-const SYSTEM_PROMPT = `You are ScamShield, a real-time scam-call defense engine.
+const SYSTEM_PROMPT = `You are Watchdog, a real-time scam-call defense engine.
 Analyze phone conversation transcript chunks for social-engineering tactics:
 impersonation (bank, IRS, police), urgency, threats, payment/wire requests,
 gift cards, crypto, OTP/verification-code requests, remote-access requests.

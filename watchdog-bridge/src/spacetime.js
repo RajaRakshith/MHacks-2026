@@ -8,7 +8,7 @@ function baseUrl() {
   const raw = process.env.SPACETIME_HOST || process.env.SPACETIME_URI || 'http://127.0.0.1:3000';
   return raw.replace(/^ws(s?):\/\//, 'http$1://').replace(/\/$/, '');
 }
-const dbName = () => process.env.SPACETIME_DB || process.env.SPACETIME_DATABASE || 'scamshield-dev';
+const dbName = () => process.env.SPACETIME_DB || process.env.SPACETIME_DATABASE || 'watchdog-dev';
 
 const some = (v) => (v === undefined || v === null || v === '' ? { none: [] } : { some: v });
 

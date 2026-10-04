@@ -31,7 +31,7 @@ export function Login() {
           </View>
 
           <Text style={[styles.title, { color: t.ink }]} accessibilityRole="header">Sign in</Text>
-          <Text style={{ color: t.muted, fontSize: 15, marginBottom: 6 }}>Mobile banking with ScamShield built in.</Text>
+          <Text style={{ color: t.muted, fontSize: 15, marginBottom: 6 }}>Mobile banking with Watchdog built in.</Text>
 
           <Text style={[styles.label, { color: t.muted }]}>Username</Text>
           <TextInput

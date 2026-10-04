@@ -3,7 +3,7 @@
 import type {
   AccountData, Claim, NessieAccount, NessieBill, NessieCustomer, NessieDeposit, NessieMerchant, NessiePurchase,
   NessieTransfer, NessieWithdrawal,
-} from '@scamshield/core';
+} from '@watchdog/core';
 import { httpJson, type Http } from './http';
 
 export const DEFAULT_NESSIE_BASE = 'https://prod-api.nessieisreal.com';

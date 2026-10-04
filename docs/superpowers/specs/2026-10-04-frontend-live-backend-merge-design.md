@@ -12,8 +12,8 @@ The C1 Mockup dashboard and phone app subscribe to the live money-gate module (`
 
 Two stacks share the repo and do not share a runtime.
 
-- **Live:** Twilio → `scamshield-bridge` → Grok → Gemini → ElevenLabs. State is `call_sessions`, `transcript_segments`, `risk_events`, `transfer_intents` in `spacetimedb/`. `request_transfer` holds when `userId` has an active session and `risk_score ≥` config threshold (default 70). The worker executes Approved intents. There is no dashboard on this path. If `NESSIE_API_KEY` is missing, the worker currently invents a mock transfer id — that goes away.
-- **Dashboard:** `apps/web` and `apps/mobile` subscribe to a second module (`spacetime/`) with `call`, `transcript`, `hold`, `guard`, claim verdicts, and a mock Margaret ledger. Protect / Simulate go through `apps/relay`. Transfers use trusted-payee / 4-hour-guard rules, not live `risk_score`. `pnpm dev` publishes `spacetime/` to database `scamshield` and starts the relay.
+- **Live:** Twilio → `watchdog-bridge` → Grok → Gemini → ElevenLabs. State is `call_sessions`, `transcript_segments`, `risk_events`, `transfer_intents` in `spacetimedb/`. `request_transfer` holds when `userId` has an active session and `risk_score ≥` config threshold (default 70). The worker executes Approved intents. There is no dashboard on this path. If `NESSIE_API_KEY` is missing, the worker currently invents a mock transfer id — that goes away.
+- **Dashboard:** `apps/web` and `apps/mobile` subscribe to a second module (`spacetime/`) with `call`, `transcript`, `hold`, `guard`, claim verdicts, and a mock Margaret ledger. Protect / Simulate go through `apps/relay`. Transfers use trusted-payee / 4-hour-guard rules, not live `risk_score`. `pnpm dev` publishes `spacetime/` to database `watchdog` and starts the relay.
 
 The user places and merges the call themselves. The dashboard only watches.
 
@@ -22,7 +22,7 @@ The user places and merges the call themselves. The dashboard only watches.
 One SpacetimeDB: `spacetimedb/`. The bridge keeps writing calls into it. The dashboard and phone app subscribe to it. The worker is the only process that calls Nessie.
 
 ```
-User phone ──merge──▶ Twilio number ──▶ scamshield-bridge
+User phone ──merge──▶ Twilio number ──▶ watchdog-bridge
                                           │ Grok / Gemini / ElevenLabs
                                           ▼
                                     SpacetimeDB (spacetimedb/)
@@ -40,7 +40,7 @@ User phone ──merge──▶ Twilio number ──▶ scamshield-bridge
 
 **Identity.** Every session and every transfer uses `userId = "demo-user"` (`DEFAULT_USER_ID`). The Margaret login stays a demo door and does not change the user id.
 
-**Local database name.** `scamshield-dev` (existing `spacetime.dev.json` / live publish). Web and mobile `VITE_SPACETIME_DB` (and the Expo equivalent) point at that name. Drop the extra `SPACETIME_DB=scamshield` split. Maincloud remains `scamshield`.
+**Local database name.** `watchdog-dev` (existing `spacetime.dev.json` / live publish). Web and mobile `VITE_SPACETIME_DB` (and the Expo equivalent) point at that name. Drop the extra `SPACETIME_DB=watchdog` split. Maincloud remains `watchdog`.
 
 ## Components
 
@@ -66,7 +66,7 @@ Existing reducers stay: `start_call_session`, `end_call_session`, `update_risk_s
 
 `request_transfer` is still a reducer (no return payload). Hold rule is unchanged: active session for that `userId` and `riskScore >= threshold` → `Held`, else `Approved`.
 
-**Held transfers (4-hour bank hold).** A Held intent is not remotely releasable on the demo UI. The reducer sets `expiresAt = requestedAt + 4 hours` and `holdReason` to: `Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.` After `expiresAt`, the worker calls `expire_held_transfer`; status becomes `Expired` and the money is still not sent. Add `Expired` to `TransferIntentStatus` and `expiresAt: option(timestamp)` on `transfer_intents`. `HOLD_TTL_MS = 4 * 60 * 60 * 1000` lives in `spacetimedb/src/constants.ts`. There is no Release / Approve / force-override on the dashboard.
+**Held transfers (4-hour bank hold).** A Held intent is not remotely releasable on the demo UI. The reducer sets `expiresAt = requestedAt + 4 hours` and `holdReason` to: `Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.` After `expiresAt`, the worker calls `expire_held_transfer`; status becomes `Expired` and the money is still not sent. Add `Expired` to `TransferIntentStatus` and `expiresAt: option(timestamp)` on `transfer_intents`. `HOLD_TTL_MS = 4 * 60 * 60 * 1000` lives in `spacetimedb/src/constants.ts`. There is no Release / Approve / force-override on the dashboard.
 
 ### `worker/`
 
@@ -80,7 +80,7 @@ If `NESSIE_API_KEY` or `NESSIE_ACCOUNT_ID` is missing, or Nessie errors, the wor
 
 Payees come from `scripts/seed.ts` output (`.seed.json` landlord / other accounts) plus any extra Nessie accounts the refresh can see. Send Money can also use a typed destination account id.
 
-### `scamshield-bridge/`
+### `watchdog-bridge/`
 
 Unchanged call pipeline. It does not learn about the bank.
 
@@ -97,7 +97,7 @@ Same tables, same reducers.
 | Login | Unchanged demo door (`margaret` / `demo1234`). Not a user id. |
 | Account | Name, last4, Nessie balance. Recent activity from the worker refresh. No snapshot → error, Send Money disabled. |
 | Send Money | Payee (list or typed Nessie account id) → `request_transfer({ userId: "demo-user", amountCents, destinationAccount, memo })`. Watch the new `transfer_intents` row for Held / Approved / Completed / Failed / Expired. Dollars in the form become integer cents. No confirmation step. No trusted-payee or 4-hour-guard rules. |
-| ScamShield | Risk meter from `call_sessions.risk_score`. Transcript from `transcript_segments` (no speaker field; show as a single stream). Warnings / signals from `risk_events`. Idle when there is no active session. Static help: how to dial / merge the ScamShield Twilio number. **No Protect, no Simulate, no scenario dropdown, no relay client.** |
+| Watchdog | Risk meter from `call_sessions.risk_score`. Transcript from `transcript_segments` (no speaker field; show as a single stream). Warnings / signals from `risk_events`. Idle when there is no active session. Static help: how to dial / merge the Watchdog Twilio number. **No Protect, no Simulate, no scenario dropdown, no relay client.** |
 | Held | Lists `transfer_intents`. Waiting rows are `Held`; show the come-to-the-bank reason and time left until `expiresAt`. “Money protected” = sum of Held + Expired amounts (cents → dollars). No Release, Approve, Reject, or force override. Expired rows stay in the decided list as “Expired — not sent.” |
 | Account analysis / `/try` | Removed. |
 
@@ -105,7 +105,7 @@ Status pill is display-only, derived from the live score: no active session → 
 
 ### Running path
 
-`pnpm dev` / `scripts/dev.mjs` publishes `spacetimedb/` to `scamshield-dev`, generates `packages/bindings` from that module, starts the **worker** (not the relay), and starts the dashboard. `MOCK` is removed.
+`pnpm dev` / `scripts/dev.mjs` publishes `spacetimedb/` to `watchdog-dev`, generates `packages/bindings` from that module, starts the **worker** (not the relay), and starts the dashboard. `MOCK` is removed.
 
 Remove from the running path: `spacetime/` publish, `apps/relay`, Protect / Simulate, fixture playback, `postRelay`, `MOCK=1`. Delete the web/mobile relay clients and the Protect / Simulate / `/try` / Account analysis UI so they cannot be launched by accident. Do not delete the `spacetime/` or `apps/relay` trees in this merge; `pnpm dev` must not publish or start them.
 
@@ -115,7 +115,7 @@ Remove from the running path: `spacetime/` publish, `apps/relay`, Protect / Simu
 
 **Boot.** Worker starts → Nessie fetch → upsert snapshot / activity / payees. UI connects and subscribes to `call_sessions`, `transcript_segments`, `risk_events`, `transfer_intents`, `account_snapshot`, `activity`, `payees`, `config`.
 
-**Live call.** User merges the ScamShield number (`userId=demo-user`). Bridge: `start_call_session` → Grok flush → `append_transcript_segment` → Gemini → `record_risk_event`. Hangup → `end_call_session`. UI paints those rows. Help copy does not start a call.
+**Live call.** User merges the Watchdog number (`userId=demo-user`). Bridge: `start_call_session` → Grok flush → `append_transcript_segment` → Gemini → `record_risk_event`. Hangup → `end_call_session`. UI paints those rows. Help copy does not start a call.
 
 **Send Money.** UI calls `request_transfer`. The reducer reads the active session in the same transaction and inserts Held or Approved.
 
@@ -146,7 +146,7 @@ Root `.env.example`:
 - Keep `DEFAULT_USER_ID=demo-user`, Spacetime URI, live call keys, `TTS_*`, `NESSIE_API_KEY`, `NESSIE_BASE_URL`.
 - Add `NESSIE_ACCOUNT_ID` (from `pnpm seed` / `.seed.json`).
 - Remove `MOCK`, `RELAY_PORT`, and the duplicate `NESSIE_KEY` / `NESSIE_BASE` pair. Seed and worker both use `NESSIE_API_KEY` + `NESSIE_BASE_URL`.
-- `SPACETIME_DATABASE=scamshield-dev` is the local name the UI also uses. Drop the conflicting `SPACETIME_DB=scamshield` default for `pnpm dev`.
+- `SPACETIME_DATABASE=watchdog-dev` is the local name the UI also uses. Drop the conflicting `SPACETIME_DB=watchdog` default for `pnpm dev`.
 
 `scripts/seed.ts` still creates the Nessie customer / account / landlord payee. It writes `NESSIE_ACCOUNT_ID` into `.seed.json` (and the operator copies that id into `.env`). Seed is required before the bank shell works.
 
@@ -158,7 +158,7 @@ Keep `npm run bridge:test`. Do not loosen Grok / Gemini fail-stop, SATS-JSON, or
 
 1. **Money gate.** Active session + score ≥ threshold + `request_transfer("demo-user")` → Held with `expiresAt` 4 hours out, worker does not call Nessie. No active high-risk session → Approved. A different `userId` is not held by `demo-user`’s call. `expire_held_transfer` on a past `expiresAt` → Expired, still no Nessie send. It errors if the hold has not expired yet.
 2. **Worker Nessie fail-stop.** Missing key / account id or Nessie error → no `account_snapshot` write; Approved intent → `fail_transfer`, never `complete_transfer`. No `mock-` transfer ids.
-3. **UI wiring.** ScamShield has no Protect / Simulate / relay import. Send Money calls `request_transfer` with `demo-user` and integer cents. Held panel reads `transfer_intents`.
+3. **UI wiring.** Watchdog has no Protect / Simulate / relay import. Send Money calls `request_transfer` with `demo-user` and integer cents. Held panel reads `transfer_intents`.
 
 Replace `scripts/acceptance.ts` (four fixture scenarios against `spacetime/`) with a live-module check: start a session, record a high score, request a transfer, assert Held.
 
@@ -182,4 +182,4 @@ Delete dashboard tests that require Simulate, claims, or the 4-hour guard. Keep 
 
 ## Success
 
-On one database (`scamshield-dev` locally): an incoming merged call as `demo-user` updates the dashboard transcript and risk live; Send Money during score ≥ 70 is Held for 4 hours with a come-to-the-bank message and Nessie does not move; after 4 hours the intent is Expired and still not sent; if Spacetime, Nessie, or the worker is down, the UI alerts and does not show a mock bank or a scripted call.
+On one database (`watchdog-dev` locally): an incoming merged call as `demo-user` updates the dashboard transcript and risk live; Send Money during score ≥ 70 is Held for 4 hours with a come-to-the-bank message and Nessie does not move; after 4 hours the intent is Expired and still not sent; if Spacetime, Nessie, or the worker is down, the UI alerts and does not show a mock bank or a scripted call.

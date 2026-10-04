@@ -1,19 +1,16 @@
 #!/usr/bin/env node
 /**
- * `pnpm phone`: runs the iOS app on a real phone through Expo Go, on any network.
+ * `pnpm phone`: runs the iOS app on a real phone through Expo Go.
  *
- * The phone has to reach two things on this machine: the Expo dev server and
- * the database (port 3000). On WSL2, or on Wi-Fi that keeps devices apart, it
- * cannot. This script gives each one a public tunnel instead:
+ * The Expo JS bundle is always tunneled (`expo start --tunnel`).
+ * The database is whatever `.env` says:
  *
- *   database          Cloudflare quick tunnel (`cloudflared`, no account)
- *   Expo dev server   Expo's own tunnel (`expo start --tunnel`)
+ *   Maincloud (SPACETIME_URI=wss://maincloud…)  the phone talks to cloud directly.
+ *                                               No cloudflared.
+ *   Local (ws://127.0.0.1:3000)                 cloudflared tunnels port 3000 so
+ *                                               the phone can reach this laptop.
  *
- * Run `pnpm dev` first, in another terminal. Then scan the QR code this prints.
- *
- * While this runs, the demo database is reachable by anyone who has the tunnel
- * URL. It is random and changes every run. Stop with Ctrl+C. The phone app
- * does not use the relay, and this script does not start or tunnel one.
+ * Run `pnpm dev` first. Then scan the QR code this prints.
  */
 
 import { spawn, spawnSync } from "node:child_process";
@@ -36,8 +33,15 @@ function readEnv() {
 }
 
 const env = { ...readEnv(), ...process.env };
-const dbLocal = (env.SPACETIME_URI || "ws://127.0.0.1:3000").replace(/^ws/, "http").replace(/\/+$/, "");
-const database = env.SPACETIME_DATABASE ?? env.SPACETIME_DB ?? "scamshield-dev";
+const spacetimeUri = (env.SPACETIME_URI || "ws://127.0.0.1:3000").replace(/\/+$/, "");
+const dbHttp = spacetimeUri.replace(/^ws/, "http");
+const database = env.SPACETIME_DATABASE ?? env.SPACETIME_DB ?? "watchdog-dev";
+let isLocal = true;
+try {
+  isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(new URL(dbHttp).hostname);
+} catch {
+  isLocal = true;
+}
 
 const children = [];
 let shuttingDown = false;
@@ -138,10 +142,14 @@ async function tunnel(name, target) {
 const ENDPOINTS_FILE = resolve(ROOT, "apps/mobile/.expo/endpoints.json");
 
 /** The app reads this through the dev server (metro.config.js) and follows it when it changes. */
-function publish(dbTunnel) {
+function publishUri(uri) {
   mkdirSync(dirname(ENDPOINTS_FILE), { recursive: true });
-  writeFileSync(ENDPOINTS_FILE, JSON.stringify({ spacetimeUri: dbTunnel.url.replace(/^http/, "ws") }));
-  console.log(`[phone] database  ${dbTunnel.url}`);
+  writeFileSync(ENDPOINTS_FILE, JSON.stringify({ spacetimeUri: uri }));
+  console.log(`[phone] database  ${uri} / ${database}`);
+}
+
+function publish(dbTunnel) {
+  publishUri(dbTunnel.url.replace(/^http/, "ws"));
 }
 
 /**
@@ -174,36 +182,51 @@ async function watch(dbTunnel) {
   }
 }
 
-async function main() {
-  if (spawnSync("cloudflared", ["--version"], { stdio: "ignore" }).status !== 0) {
-    console.error(
-      "[phone] `cloudflared` was not found. Install it:\n" +
-        "        curl -sSL -o ~/.local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 && chmod +x ~/.local/bin/cloudflared\n" +
-        "        (macOS: brew install cloudflared)",
-    );
-    process.exit(1);
-  }
-  if (!(await ok(`${dbLocal}/v1/ping`))) {
-    console.error("[phone] SpacetimeDB is not running. Start it in another terminal with `pnpm dev`, then run this again.");
-    process.exit(1);
-  }
-
-  console.log("[phone] Opening a tunnel to the database...");
-  const dbTunnel = await tunnel("database", dbLocal);
-  publish(dbTunnel);
-  void watch(dbTunnel);
-
+function startExpo() {
   console.log("[phone] Starting Expo. Scan the QR code with the iPhone camera; it opens in Expo Go.\n");
-
-  // The app looks the tunnel addresses up at run time, so nothing about them is compiled in.
-  // Expo stays in this terminal's process group so its keyboard shortcuts work.
   const expo = spawn(process.execPath, [resolve(ROOT, "apps/mobile/node_modules/expo/bin/cli"), "start", "--tunnel", "--clear"], {
     cwd: resolve(ROOT, "apps/mobile"),
     stdio: "inherit",
-    env: { ...process.env, EXPO_PUBLIC_SPACETIME_DB: database },
+    env: {
+      ...process.env,
+      EXPO_PUBLIC_SPACETIME_URI: spacetimeUri,
+      EXPO_PUBLIC_SPACETIME_DB: database,
+    },
   });
   children.push(expo);
   expo.on("exit", (code) => shutdown(code ?? 0));
+}
+
+async function main() {
+  if (!isLocal) {
+    if (!(await ok(`${dbHttp}/v1/ping`))) {
+      console.error(`[phone] Cannot reach ${dbHttp}. Check SPACETIME_URI in .env.`);
+      process.exit(1);
+    }
+    console.log("[phone] Using the cloud database from .env (no local tunnel).");
+    publishUri(spacetimeUri);
+    startExpo();
+    return;
+  }
+
+  if (spawnSync("cloudflared", ["--version"], { stdio: "ignore" }).status !== 0) {
+    console.error(
+      "[phone] Local Spacetime needs `cloudflared` so the phone can reach port 3000.\n" +
+        "        brew install cloudflared\n" +
+        "        Or point .env at Maincloud (SPACETIME_URI=wss://maincloud.spacetimedb.com) and run this again.",
+    );
+    process.exit(1);
+  }
+  if (!(await ok(`${dbHttp}/v1/ping`))) {
+    console.error("[phone] Local SpacetimeDB is not running. Start it in another terminal with `pnpm dev`, then run this again.");
+    process.exit(1);
+  }
+
+  console.log("[phone] Opening a tunnel to the local database...");
+  const dbTunnel = await tunnel("database", dbHttp);
+  publish(dbTunnel);
+  void watch(dbTunnel);
+  startExpo();
 }
 
 main().catch((e) => {

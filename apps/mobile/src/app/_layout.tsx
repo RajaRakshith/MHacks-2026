@@ -1,4 +1,4 @@
-import { DbConnection } from "@scamshield/bindings";
+import { DbConnection } from "@watchdog/bindings";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useMemo } from "react";

@@ -1,4 +1,4 @@
-import { tables } from "@scamshield/bindings";
+import { tables } from "@watchdog/bindings";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTable } from "spacetimedb/react";
@@ -69,7 +69,7 @@ export default function ShieldScreen() {
       <Card>
         <SectionLabel>Live transcript</SectionLabel>
         {!session ? (
-          <Empty>No call yet. Add ScamShield to a live call (Add Call, then Merge) using the Twilio number.</Empty>
+          <Empty>No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.</Empty>
         ) : lines.length === 0 ? (
           <Empty>Listening…</Empty>
         ) : (
@@ -103,11 +103,11 @@ export default function ShieldScreen() {
           accessibilityState={{ expanded: helpOpen }}
           style={{ minHeight: 44, justifyContent: "center" }}
         >
-          <Text style={{ color: t.ink, fontSize: 15, fontWeight: "600" }}>How to add ScamShield</Text>
+          <Text style={{ color: t.ink, fontSize: 15, fontWeight: "600" }}>How to add Watchdog</Text>
         </Pressable>
         {helpOpen && (
           <Body muted>
-            Place or receive the call on your phone. Add a call to the ScamShield Twilio number, then Merge. This screen only watches that call — it does not start one.
+            Place or receive the call on your phone. Add a call to the Watchdog Twilio number, then Merge. This screen only watches that call — it does not start one.
           </Body>
         )}
       </Card>

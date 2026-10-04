@@ -1,6 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { tables } from "@scamshield/bindings";
-import { DEMO_USER_ID } from "@scamshield/core";
+import { tables } from "@watchdog/bindings";
+import { DEMO_USER_ID } from "@watchdog/core";
 import { Tabs } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Vibration } from "react-native";
@@ -45,7 +45,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="shield"
         options={{
-          title: "ScamShield",
+          title: "Watchdog",
           tabBarIcon: ({ color, size }) => <Ionicons name="shield-checkmark-outline" size={size} color={color} />,
           tabBarBadge: shield.state === "scam_likely" || shield.state === "caution" ? "!" : undefined,
           tabBarBadgeStyle: { backgroundColor: shield.state === "scam_likely" ? t.critical : t.warning, color: shield.state === "scam_likely" ? "#ffffff" : "#14201f" },

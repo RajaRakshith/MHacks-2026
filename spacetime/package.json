@@ -1,5 +1,5 @@
 {
-  "name": "@scamshield/module",
+  "name": "@watchdog/module",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@scamshield/core": "workspace:*",
+    "@watchdog/core": "workspace:*",
     "spacetimedb": "2.10.*"
   },
   "devDependencies": {

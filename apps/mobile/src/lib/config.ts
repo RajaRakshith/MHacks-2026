@@ -14,7 +14,7 @@ export interface Endpoints {
   spacetimeUri: string;
 }
 
-export const SPACETIME_DB = process.env.EXPO_PUBLIC_SPACETIME_DB ?? "scamshield-dev";
+export const SPACETIME_DB = process.env.EXPO_PUBLIC_SPACETIME_DB ?? "watchdog-dev";
 
 /** The dev server this app was loaded from, e.g. "https://abc-8081.exp.direct" or "http://192.168.1.20:8081". */
 function devOrigin(): string {
@@ -41,7 +41,7 @@ const listeners = new Set<() => void>();
 async function refresh(): Promise<void> {
   let next = fallback;
   try {
-    const res = await fetch(`${devOrigin()}/scamshield-endpoints.json`, { cache: "no-store" });
+    const res = await fetch(`${devOrigin()}/watchdog-endpoints.json`, { cache: "no-store" });
     const body = (await res.json()) as Partial<Endpoints>;
     if (typeof body.spacetimeUri === "string") {
       next = { spacetimeUri: body.spacetimeUri };

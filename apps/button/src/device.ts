@@ -12,8 +12,8 @@
 // Confirm the port (FREEWILI_PORT) and that the display shows the text.
 
 import { createInterface } from "node:readline";
-import type { ShieldState } from "@scamshield/core";
-import { SHIELD_STATE_LABELS } from "@scamshield/core";
+import type { ShieldState } from "@watchdog/core";
+import { SHIELD_STATE_LABELS } from "@watchdog/core";
 
 export interface DeviceEvents {
   onPress: () => void;
@@ -21,7 +21,7 @@ export interface DeviceEvents {
 }
 
 export interface Device {
-  /** Shows the ScamShield state and its color. */
+  /** Shows the Watchdog state and its color. */
   show(state: ShieldState): void;
   close(): void;
 }
@@ -116,7 +116,7 @@ class FreeWili implements Device {
 
   show(state: ShieldState): void {
     // g) GUI functions, p) show text on the display.
-    this.port.write(`g\np\nScamShield: ${SHIELD_STATE_LABELS[state]}\n`);
+    this.port.write(`g\np\nWatchdog: ${SHIELD_STATE_LABELS[state]}\n`);
     // g) GUI functions, s) set board LED: "<index> <red> <green> <blue>".
     const [r, g, b] = LED[state];
     for (let i = 0; i < LED_COUNT; i++) this.port.write(`g\ns\n${i} ${r} ${g} ${b}\n`);

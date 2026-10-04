@@ -1,5 +1,5 @@
-import { reducers, tables } from "@scamshield/bindings";
-import { DEMO_USER_ID, dollarsToCents } from "@scamshield/core";
+import { reducers, tables } from "@watchdog/bindings";
+import { DEMO_USER_ID, dollarsToCents } from "@watchdog/core";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { useReducer, useSpacetimeDB, useTable } from "spacetimedb/react";

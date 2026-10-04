@@ -1,7 +1,7 @@
 {
-  "name": "scamshield-bridge",
+  "name": "watchdog-bridge",
   "version": "1.0.0",
-  "description": "ScamShield call server: Twilio Media Streams -> Grok Voice STT -> Gemini score -> SpacetimeDB",
+  "description": "Watchdog call server: Twilio Media Streams -> Grok Voice STT -> Gemini score -> SpacetimeDB",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

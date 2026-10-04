@@ -1,5 +1,5 @@
 {
-  "database": "scamshield",
+  "database": "watchdog",
   "module-path": "spacetimedb",
   "server": "maincloud",
   "generate": [

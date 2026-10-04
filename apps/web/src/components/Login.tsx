@@ -60,7 +60,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
         </div>
 
         <h1 className="text-lg font-semibold text-ink">Sign in</h1>
-        <p className="mb-5 text-sm text-muted">Online banking with ScamShield built in.</p>
+        <p className="mb-5 text-sm text-muted">Online banking with Watchdog built in.</p>
 
         <form onSubmit={onSubmit} className="flex flex-col gap-3.5">
           <div>

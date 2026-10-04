@@ -1,4 +1,4 @@
-// ScamShield local server.
+// Watchdog local server.
 //   POST /twilio/voice   Twilio "A call comes in" webhook -> TwiML that opens a Media Stream to us
 //   WS   /media-stream   Twilio Media Stream (one CallSession per connection)
 //   GET  /health         status + active calls
@@ -63,12 +63,12 @@ const server = http.createServer(async (req, res) => {
           gemini: !!process.env.GEMINI_API_KEY,
           elevenlabs: !!process.env.ELEVENLABS_API_KEY,
         },
-        spacetime: `${process.env.SPACETIME_HOST || process.env.SPACETIME_URI || 'http://127.0.0.1:3000'} / ${process.env.SPACETIME_DB || process.env.SPACETIME_DATABASE || 'scamshield-dev'}`,
+        spacetime: `${process.env.SPACETIME_HOST || process.env.SPACETIME_URI || 'http://127.0.0.1:3000'} / ${process.env.SPACETIME_DB || process.env.SPACETIME_DATABASE || 'watchdog-dev'}`,
         calls: [...activeSessions.values()].map((s) => s.status()),
       }, null, 2));
     }
     res.writeHead(url.pathname === '/' ? 200 : 404);
-    res.end(url.pathname === '/' ? 'ScamShield bridge up' : 'not found');
+    res.end(url.pathname === '/' ? 'Watchdog bridge up' : 'not found');
   } catch (e) {
     console.error(e);
     res.writeHead(500);
@@ -85,6 +85,6 @@ if (missing.length) {
 }
 
 server.listen(PORT, () => {
-  console.log(`ScamShield listening on http://localhost:${PORT}`);
+  console.log(`Watchdog listening on http://localhost:${PORT}`);
   console.log('  stt: grok-voice  score: gemini  tts: elevenlabs');
 });

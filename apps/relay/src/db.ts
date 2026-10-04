@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { DbConnection } from "@scamshield/bindings";
+import { DbConnection } from "@watchdog/bindings";
 import { env, loadSeed } from "./env";
 
 export type Db = DbConnection;

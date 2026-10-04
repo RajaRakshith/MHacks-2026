@@ -1,6 +1,6 @@
 /** Mock mode: Nessie responses bundled from fixtures/nessie, so the demo runs with no API keys. */
 
-import { resolveFixtureDates, type AccountData, type NessieAccount, type NessieBill, type NessieCustomer, type NessieDeposit, type NessieMerchant, type NessiePurchase, type NessieTransfer, type NessieWithdrawal } from '@scamshield/core';
+import { resolveFixtureDates, type AccountData, type NessieAccount, type NessieBill, type NessieCustomer, type NessieDeposit, type NessieMerchant, type NessiePurchase, type NessieTransfer, type NessieWithdrawal } from '@watchdog/core';
 import account from '../../fixtures/nessie/account.json';
 import bills from '../../fixtures/nessie/bills.json';
 import customer from '../../fixtures/nessie/customer.json';

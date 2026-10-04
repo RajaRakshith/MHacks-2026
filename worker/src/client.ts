@@ -37,6 +37,6 @@ export const defaultClientConfig = (): Required<
 > &
   Pick<SpacetimeClientConfig, 'token'> => ({
   uri: process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000',
-  database: process.env.SPACETIME_DATABASE ?? 'scamshield',
+  database: process.env.SPACETIME_DATABASE ?? 'watchdog',
   token: process.env.SPACETIME_TOKEN,
 });

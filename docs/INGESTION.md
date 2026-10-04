@@ -1,6 +1,6 @@
 # Call Ingestion Server
 
-> **The demo call server is [`scamshield-bridge/`](../scamshield-bridge/README.md)** (`npm run bridge:dev`). It calls the same
+> **The demo call server is [`watchdog-bridge/`](../watchdog-bridge/README.md)** (`npm run bridge:dev`). It calls the same
 > reducers listed below. This page documents `server/`, an alternative TypeScript implementation that uses realtime STT sockets
 > and the SpacetimeDB SDK. Run only one of them: both listen on port 8080 and serve `/twilio/voice`.
 

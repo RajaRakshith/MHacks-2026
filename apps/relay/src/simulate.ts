@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
-import type { CallFixture } from "@scamshield/core";
+import type { CallFixture } from "@watchdog/core";
 import type { Db } from "./db";
 import { REPO_ROOT } from "./env";
 import { ANALYZE_MIN_INTERVAL_MS, CallSession, startCall } from "./session";

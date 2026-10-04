@@ -1,5 +1,5 @@
 {
-  "name": "@scamshield/worker",
+  "name": "@watchdog/worker",
   "version": "0.1.0",
   "private": true,
   "type": "module",

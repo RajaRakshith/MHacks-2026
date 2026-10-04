@@ -1,4 +1,4 @@
-import { tables } from "@scamshield/bindings";
+import { tables } from "@watchdog/bindings";
 import { router } from "expo-router";
 import { Fragment, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -52,8 +52,8 @@ export default function AccountScreen() {
           </View>
         )}
 
-        <Pressable onPress={() => router.push("/shield")} accessibilityRole="link" accessibilityLabel="Open ScamShield" style={styles.shieldRow}>
-          <Text style={{ color: t.muted, fontSize: 14, fontWeight: "600" }}>ScamShield</Text>
+        <Pressable onPress={() => router.push("/shield")} accessibilityRole="link" accessibilityLabel="Open Watchdog" style={styles.shieldRow}>
+          <Text style={{ color: t.muted, fontSize: 14, fontWeight: "600" }}>Watchdog</Text>
           <StatusPill state={shield.state} />
         </Pressable>
       </Card>

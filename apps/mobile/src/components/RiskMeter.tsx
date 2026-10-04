@@ -1,4 +1,4 @@
-import { CAUTION_THRESHOLD, SCAM_THRESHOLD, meterBand } from "@scamshield/core";
+import { CAUTION_THRESHOLD, SCAM_THRESHOLD, meterBand } from "@watchdog/core";
 import { StyleSheet, Text, View } from "react-native";
 import { useTheme } from "../lib/theme";
 

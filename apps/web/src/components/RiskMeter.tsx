@@ -1,4 +1,4 @@
-import { CAUTION_THRESHOLD, SCAM_THRESHOLD, meterBand } from "@scamshield/core";
+import { CAUTION_THRESHOLD, SCAM_THRESHOLD, meterBand } from "@watchdog/core";
 
 const FILL = { green: "bg-good", amber: "bg-warning", red: "bg-critical" } as const;
 const TRACK = { green: "bg-good-track", amber: "bg-warning-track", red: "bg-critical-track" } as const;

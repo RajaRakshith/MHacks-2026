@@ -1,8 +1,8 @@
 {
-  "name": "scamshield",
+  "name": "watchdog",
   "private": true,
   "version": "0.1.0",
-  "description": "ScamShield: live call pipeline plus C1 Mockup dashboard (MHacks 2026)",
+  "description": "Watchdog: live call pipeline plus C1 Mockup dashboard (MHacks 2026)",
   "packageManager": "pnpm@9.15.9",
   "engines": {
     "node": ">=20"
@@ -12,7 +12,7 @@
     "spacetimedb",
     "worker",
     "server",
-    "scamshield-bridge"
+    "watchdog-bridge"
   ],
   "scripts": {
     "dev": "node scripts/dev.mjs",
@@ -20,24 +20,24 @@
     "module:publish": "node scripts/dev.mjs --publish-only",
     "seed": "tsx scripts/seed.ts",
     "acceptance": "tsx scripts/acceptance.ts",
-    "test": "npm run bridge:test && npm run test:policy && npm run test:worker && npm run test:ui-wiring && pnpm --filter @scamshield/core test",
+    "test": "npm run bridge:test && npm run test:policy && npm run test:worker && npm run test:ui-wiring && pnpm --filter @watchdog/core test",
     "test:worker": "tsx --test worker/test/*.test.ts",
     "test:dashboard": "pnpm -r --if-present test",
     "test:ui-wiring": "node scripts/check-ui-wiring.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
-    "mobile": "pnpm --filter @scamshield/mobile start",
+    "mobile": "pnpm --filter @watchdog/mobile start",
     "phone": "node scripts/phone.mjs",
     "spacetime:dev": "spacetime dev --yes",
     "spacetime:generate": "spacetime generate --yes --env dev",
     "spacetime:publish:local": "spacetime publish --yes --env dev",
-    "spacetime:publish:cloud": "spacetime publish --yes scamshield",
+    "spacetime:publish:cloud": "spacetime publish --yes watchdog",
     "server:dev": "npm run dev --workspace=server",
     "worker:dev": "npm run dev --workspace=worker",
     "worker:build": "npm run build --workspace=worker",
-    "bridge:dev": "npm run dev --workspace=scamshield-bridge",
-    "bridge:start": "npm start --workspace=scamshield-bridge",
-    "bridge:test": "npm test --workspace=scamshield-bridge",
+    "bridge:dev": "npm run dev --workspace=watchdog-bridge",
+    "bridge:start": "npm start --workspace=watchdog-bridge",
+    "bridge:test": "npm test --workspace=watchdog-bridge",
     "test:policy": "tsx --test spacetimedb/test/policy.test.ts",
     "tunnel": "node scripts/tunnel.mjs"
   },

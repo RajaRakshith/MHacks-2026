@@ -1,14 +1,14 @@
 /**
  * Button bridge (section 7).
- *   Press       POST /protect on the relay: the customer's phone rings from ScamShield.
+ *   Press       POST /protect on the relay: the customer's phone rings from Watchdog.
  *   Long press  arm_guard(): protects transfers without starting a call.
- *   Screen      the live ScamShield state from the `call` table.
+ *   Screen      the live Watchdog state from the `call` table.
  */
 
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { DbConnection } from "@scamshield/bindings";
-import type { ShieldState } from "@scamshield/core";
+import { DbConnection } from "@watchdog/bindings";
+import type { ShieldState } from "@watchdog/core";
 import { config as loadDotenv } from "dotenv";
 import { openDevice, type Device } from "./device";
 
@@ -16,7 +16,7 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
 loadDotenv({ path: resolve(ROOT, ".env"), quiet: true });
 
 const SPACETIME_URI = process.env.SPACETIME_URI?.trim() || "ws://127.0.0.1:3000";
-const SPACETIME_DB = process.env.SPACETIME_DB?.trim() || "scamshield";
+const SPACETIME_DB = process.env.SPACETIME_DB?.trim() || "watchdog";
 const RELAY_URL = (process.env.RELAY_URL?.trim() || `http://localhost:${process.env.RELAY_PORT?.trim() || 8787}`).replace(/\/+$/, "");
 
 let conn: DbConnection | null = null;
@@ -41,7 +41,7 @@ function render(): void {
 }
 
 async function onPress(): Promise<void> {
-  console.log("[button] Press: asking ScamShield to join the call");
+  console.log("[button] Press: asking Watchdog to join the call");
   try {
     const res = await fetch(`${RELAY_URL}/protect`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
     const body = (await res.json()) as { ok?: boolean; error?: string; message?: string };

@@ -2,7 +2,7 @@ import { useColorScheme } from "react-native";
 
 /**
  * C1 Mockup colors: Capital One's navy blue, the same tokens as the web dashboard. Status colors
- * (good / warning / critical) are reserved for ScamShield state and always
+ * (good / warning / critical) are reserved for Watchdog state and always
  * appear with a label or an icon, never as color alone.
  */
 export interface Theme {

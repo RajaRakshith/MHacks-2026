@@ -1,6 +1,6 @@
 /** Gemini call analyzer (section 3.4): transcript window in, tactics and claims out. */
 
-import { parseAnalyzerOutput, TACTICS, type AnalyzerOutput } from '@scamshield/core';
+import { parseAnalyzerOutput, TACTICS, type AnalyzerOutput } from '@watchdog/core';
 import { httpJson, type Http } from './http';
 
 // A fast, stable Flash-Lite model keeps a red flag under 5 seconds from phrase to UI. Override with GEMINI_MODEL.

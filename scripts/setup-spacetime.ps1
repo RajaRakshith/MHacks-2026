@@ -1,4 +1,4 @@
-# ScamShield SpacetimeDB setup helper (Windows)
+# Watchdog SpacetimeDB setup helper (Windows)
 # Run from repo root after installing the CLI:
 #   iwr https://windows.spacetimedb.com -useb | iex
 

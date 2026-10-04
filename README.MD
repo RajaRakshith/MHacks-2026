@@ -1,8 +1,8 @@
-# ScamShield
+# Watchdog
 
 ## What it is
 
-ScamShield is a real-time scam-call defense system. It joins your suspicious calls as a silent third participant, transcribes and analyzes what's being said, warns you live as social-engineering tactics escalate — and, crucially, it sits in front of your money: a mock banking app routes every transfer through ScamShield's policy engine, which holds transfers while a high-risk call is active.
+Watchdog is a real-time scam-call defense system. It joins your suspicious calls as a silent third participant, transcribes and analyzes what's being said, warns you live as social-engineering tactics escalate — and, crucially, it sits in front of your money: a mock banking app routes every transfer through Watchdog's policy engine, which holds transfers while a high-risk call is active.
 
 ## What it's meant to do
 
@@ -12,10 +12,10 @@ ScamShield is a real-time scam-call defense system. It joins your suspicious cal
 
 ## Architecture
 
-1. **Call ingestion:** User receives suspicious call → Add Call → dial ScamShield's Twilio number → Merge. Twilio Media Streams pipes live audio to your server over websocket.
+1. **Call ingestion:** User receives suspicious call → Add Call → dial Watchdog's Twilio number → Merge. Twilio Media Streams pipes live audio to your server over websocket.
 2. **Transcription:** Grok Voice transcribes the call live. ElevenLabs TTS speaks a one-time warning into the call at critical risk.
 3. **Risk engine:** Gemini scores each flush — risk score 0–100, detected signals, recommended action, victim-facing warning.
-4. **Real-time state (SpacetimeDB):** one module, `spacetimedb/`, published as `scamshield-dev`. `call_sessions` holds live risk per user; `transfer_intents` holds every transfer. A high-risk transfer is **Held** (come to the bank, 4 hours) and then **Expired** — it is not released from the dashboard. The phone app and the policy engine both subscribe — no polling.
+4. **Real-time state (SpacetimeDB):** one module, `spacetimedb/`, published as `watchdog-dev`. `call_sessions` holds live risk per user; `transfer_intents` holds every transfer. A high-risk transfer is **Held** (come to the bank, 4 hours) and then **Expired** — it is not released from the dashboard. The phone app and the policy engine both subscribe — no polling.
 5. **Money gate:** The mock Capital One bank app (Nessie underneath for accounts, balances, ledger) never calls Nessie transfers directly. It calls the `request_transfer` reducer, which checks for an active high-risk call session (risk ≥ 70 by default) in the same transaction that records the intent. No code path moves money without the check.
 6. **Durable store (Neon Postgres):** users, devices, call history, held-transfer audit log, signal timelines for the post-call report.
 
@@ -33,13 +33,13 @@ Twilio (Programmable Voice + Media Streams + a phone number), xAI Grok (Grok Voi
 
 ## Demo script (3 minutes)
 
-Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). Victim merges ScamShield; audience screen shows transcript with risk climbing 20 → 60 → 94% and warnings firing. Victim opens the mock bank app — risk banner is already there — attempts the transfer, gets **HELD**. Call ends; post-call report shows the signal timeline and the held transfer with "you would have lost $2,000."
+Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). Victim merges Watchdog; audience screen shows transcript with risk climbing 20 → 60 → 94% and warnings firing. Victim opens the mock bank app — risk banner is already there — attempts the transfer, gets **HELD**. Call ends; post-call report shows the signal timeline and the held transfer with "you would have lost $2,000."
 
 ## Repo layout
 
 | Folder | What it is |
 |--------|------------|
-| `scamshield-bridge/` | **Live call server.** Twilio webhook + Media Stream → Grok Voice transcribes; Gemini scores each flush; ElevenLabs TTS warning → SpacetimeDB reducers |
+| `watchdog-bridge/` | **Live call server.** Twilio webhook + Media Stream → Grok Voice transcribes; Gemini scores each flush; ElevenLabs TTS warning → SpacetimeDB reducers |
 | `spacetimedb/` | Live money-gate module: `call_sessions`, `risk_events`, `transcript_segments`, `transfer_intents`, `config` + atomic `request_transfer` |
 | `worker/` | Transfer worker: subscribes to approved `transfer_intents`, executes them on Nessie |
 | `server/` | Alternative TypeScript ingestion server. See [docs/INGESTION.md](docs/INGESTION.md) |
@@ -54,7 +54,7 @@ Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). V
 | `fixtures` | Scripted calls and mock Nessie data (not on the running path) |
 
 ```
-Twilio ──POST /twilio/voice──▶ scamshield-bridge ──▶ Grok Voice (transcribes)
+Twilio ──POST /twilio/voice──▶ watchdog-bridge ──▶ Grok Voice (transcribes)
        ──wss /media-stream──▶        │ Gemini scores each flush; ElevenLabs TTS warning
                                      │ HTTP reducers: start_call_session / append_transcript_segment
                                      ▼                record_risk_event / end_call_session
@@ -63,7 +63,7 @@ Twilio ──POST /twilio/voice──▶ scamshield-bridge ──▶ Grok Voice 
                                      ▼
                                worker/ ──▶ Nessie (approved intents only; Held expires unsent)
 
-Dashboard (apps/web, apps/mobile) ──▶ SpacetimeDB database scamshield-dev
+Dashboard (apps/web, apps/mobile) ──▶ SpacetimeDB database watchdog-dev
 ```
 
 ## Running
@@ -79,35 +79,35 @@ npm run bridge:dev
 npm run tunnel
 ```
 
-`pnpm dev` publishes `spacetimedb/` to `scamshield-dev`, regenerates bindings, and starts the worker and the dashboard (http://localhost:5173). It does not publish `spacetime/` or start the relay.
+`pnpm dev` publishes `spacetimedb/` to `watchdog-dev`, regenerates bindings, and starts the worker and the dashboard (http://localhost:5173). It does not publish `spacetime/` or start the relay.
 
 Point the Twilio number's **A call comes in** webhook at `https://HOST/twilio/voice?userId=demo-user` (HTTP POST).
 
-Merge ScamShield on the phone; the dashboard watches. Send $2000 during a high-risk call → Held, come to the bank, 4 hours. The balance does not move, and there is no Release button.
+Merge Watchdog on the phone; the dashboard watches. Send $2000 during a high-risk call → Held, come to the bank, 4 hours. The balance does not move, and there is no Release button.
 
 | Command | What it does |
 | --- | --- |
 | `pnpm dev` | Publish the live module and start the worker and dashboard |
-| `pnpm reset` | Republish `spacetimedb/` to `scamshield-dev` with a clean database |
+| `pnpm reset` | Republish `spacetimedb/` to `watchdog-dev` with a clean database |
 | `npm test` | Bridge, policy, worker, UI wiring, and remaining core tests (no Twilio) |
-| `pnpm acceptance` | Live hold check against published `scamshield-dev` (needs `spacetime start`) |
+| `pnpm acceptance` | Live hold check against published `watchdog-dev` (needs `spacetime start`) |
 | `pnpm seed` | Create the Nessie customer once; copy `NESSIE_ACCOUNT_ID` into `.env` |
 | `pnpm phone` | Run the iOS app in Expo Go over a tunnel |
 | `pnpm mobile` | Start the Expo dev server for a phone on the same network |
 
-`npm test` does not need Twilio or a running database. Details: [scamshield-bridge/README.md](scamshield-bridge/README.md), [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md).
+`npm test` does not need Twilio or a running database. Details: [watchdog-bridge/README.md](watchdog-bridge/README.md), [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md).
 
 ## iOS app
 
-`apps/mobile` is the same bank as a phone app: React Native with Expo (SDK 57), three tabs (Account, ScamShield, Held). It reads the same `scamshield-dev` tables and calls the same reducers as the web dashboard.
+`apps/mobile` is the same bank as a phone app: React Native with Expo (SDK 57), three tabs (Account, Watchdog, Held). It reads the same tables and calls the same reducers as the web dashboard.
 
 **On an iPhone, with Expo Go:**
 
 1. Install **Expo Go** from the App Store.
 2. With `pnpm dev` running in one terminal, run `pnpm phone` in a second one and scan the QR code.
 
-`pnpm phone` opens a public tunnel to the database. While it runs, anyone who has the tunnel URL can reach the demo database. The phone app does not use the relay.
+`pnpm phone` follows `.env`. If `SPACETIME_URI` is Maincloud, the phone talks to that database directly (no `cloudflared`). If it is local `:3000`, the script tunnels that port so the phone can reach this laptop. The Expo JS bundle is always tunneled. The phone app does not use the relay.
 
-**On the same Wi-Fi, without tunnels:** `pnpm dev --lan` then `pnpm mobile`. The app finds the database (port 3000) on the machine that served it. `--lan` opens the demo database to everyone on the network.
+**On the same Wi-Fi, local database, without tunnels:** `pnpm dev --lan` then `pnpm mobile`. `--lan` opens the demo database to everyone on the network.
 
-To preview without a phone: `pnpm --filter @scamshield/mobile web`.
+To preview without a phone: `pnpm --filter @watchdog/mobile web`.

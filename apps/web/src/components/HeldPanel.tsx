@@ -1,5 +1,5 @@
-import { tables } from "@scamshield/bindings";
-import { DEMO_USER_ID } from "@scamshield/core";
+import { tables } from "@watchdog/bindings";
+import { DEMO_USER_ID } from "@watchdog/core";
 import { useMemo } from "react";
 import { useTable } from "spacetimedb/react";
 import { usdCompact } from "../lib/format";

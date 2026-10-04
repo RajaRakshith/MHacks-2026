@@ -1,6 +1,6 @@
-import { tables } from "@scamshield/bindings";
-import type { CallSessions } from "@scamshield/bindings/types";
-import { DEMO_USER_ID, shieldState, type ShieldState } from "@scamshield/core";
+import { tables } from "@watchdog/bindings";
+import type { CallSessions } from "@watchdog/bindings/types";
+import { DEMO_USER_ID, shieldState, type ShieldState } from "@watchdog/core";
 import { useMemo } from "react";
 import { useTable } from "spacetimedb/react";
 
@@ -12,7 +12,7 @@ export interface Shield {
   state: ShieldState;
 }
 
-/** ScamShield state shared by the tab bar, the account banner, and the ScamShield tab. */
+/** Watchdog state shared by the tab bar, the account banner, and the Watchdog tab. */
 export function useShield(): Shield {
   const [sessions] = useTable(tables.callSessions);
 

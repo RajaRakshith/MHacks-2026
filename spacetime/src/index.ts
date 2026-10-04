@@ -1,5 +1,5 @@
 /**
- * ScamShield module: reducers and procedures from section 6.2.
+ * Watchdog module: reducers and procedures from section 6.2.
  *
  * Reducers only change state. Anything that calls an external API (Gemini,
  * Nessie) is a procedure, and every procedure follows the same shape:
@@ -14,7 +14,7 @@ import {
   isTrustedPayee, isoDay, last4Of, mergeAnalyzerOutputs, parseAnalyzerJson, redactAnalyzerOutput, redactDigits,
   scoreCall, stateForScore, transcriptWindow, transferKindFor, verifyClaim,
   type AnalyzerOutput, type Claim, type Tactic, type Verdict,
-} from '@scamshield/core';
+} from '@watchdog/core';
 import { Timestamp } from 'spacetimedb';
 import { SenderError, t, type InferSchema, type ProcedureCtx, type ReducerCtx } from 'spacetimedb/server';
 import { DEFAULT_GEMINI_MODEL, analyzeWithGemini } from './gemini';

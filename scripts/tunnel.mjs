@@ -19,7 +19,7 @@ const domain = (process.env.NGROK_DOMAIN || '').replace(/^https?:\/\//, '').repl
 if (!domain) {
   console.error(`Set NGROK_DOMAIN in ${envPath}
 Claim a free static domain at https://dashboard.ngrok.com/domains
-Example: NGROK_DOMAIN=scamshield-demo.ngrok-free.app`);
+Example: NGROK_DOMAIN=watchdog-demo.ngrok-free.app`);
   process.exit(1);
 }
 

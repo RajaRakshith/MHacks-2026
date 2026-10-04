@@ -28,8 +28,8 @@ check('ElevenLabs speech is appended after the beeps',
 
 const tts = http.calls.find((c) => c[0] === 'tts');
 const body = tts?.[2];
-check('asks ElevenLabs for the ScamShield line',
-  typeof body === 'string' && body.includes('This is ScamShield, protecting your calls'), body);
+check('asks ElevenLabs for the Watchdog line',
+  typeof body === 'string' && body.includes('This is Watchdog, protecting your calls'), body);
 check('voice settings are urgent', (() => {
   if (!body) return false;
   const j = JSON.parse(body);

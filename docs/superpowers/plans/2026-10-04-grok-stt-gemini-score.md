@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** On `scamshield-bridge` only, Grok Voice transcribes the Twilio audio stream and Gemini scores each flushed transcript (0–100) into SpacetimeDB, with no STT/score fallbacks.
+**Goal:** On `watchdog-bridge` only, Grok Voice transcribes the Twilio audio stream and Gemini scores each flushed transcript (0–100) into SpacetimeDB, with no STT/score fallbacks.
 
 **Architecture:** Grok Voice stays the µ-law STT websocket and loses `report_risk`. On each transcript flush, `CallSession` sends the full transcript so far plus the previous score to Gemini `generateContent` via `fetch`. Success writes `record_risk_event` (and may trigger the existing ElevenLabs TTS warning). API errors log and stop that step — no ElevenLabs Scribe, no Grok text score, no keyword heuristic. `request_transfer` is unchanged.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Scope is `scamshield-bridge/` plus root `.env.example` and README lines that still say Grok scores / ElevenLabs STT. Do not change `server/`, `Twilio/`, `spacetimedb/`, or `worker/`.
+- Scope is `watchdog-bridge/` plus root `.env.example` and README lines that still say Grok scores / ElevenLabs STT. Do not change `server/`, `Twilio/`, `spacetimedb/`, or `worker/`.
 - Bytes go only to Grok. Gemini sees text only, and only on flush (VAD `completed` or 1.5s idle). No 10s timer.
 - No new npm SDK. Gemini is `fetch` to `{GEMINI_BASE_URL}/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}`. Default model `gemini-2.5-flash`. Default base `https://generativelanguage.googleapis.com`.
 - Missing `XAI_API_KEY`, `GEMINI_API_KEY`, or `ELEVENLABS_API_KEY` at process start: refuse to listen and print which key. Tests set keys themselves and do not boot `server.js`.
@@ -23,31 +23,31 @@
 
 | File | Responsibility |
 |---|---|
-| Create: `scamshield-bridge/src/gemini.js` | `scoreWithGemini(transcript, prevScore)` — `fetch` + `normalizeRisk` |
-| Create: `scamshield-bridge/src/keys.js` | `missingApiKeys()` for boot fail-loud |
-| Create: `scamshield-bridge/test/gemini.mjs` | Isolated Gemini scorer mock test |
-| Create: `scamshield-bridge/test/gemini-fail.mjs` | Flush still stored; Gemini 503 writes no risk |
-| Create: `scamshield-bridge/test/grok-fail.mjs` | Grok down → no STT, no score |
-| Create: `scamshield-bridge/test/boot.mjs` | `missingApiKeys()` lists the three required keys |
-| Modify: `scamshield-bridge/src/risk.js` | Keep schema/guide/`normalizeRisk`; delete Grok text + heuristic |
-| Modify: `scamshield-bridge/src/engines/grok.js` | STT only — no tools, no `onRisk` |
-| Modify: `scamshield-bridge/src/callSession.js` | Flush → Gemini; no failover; inline `SAMPLE_RATE` |
-| Modify: `scamshield-bridge/src/server.js` | Boot keys; `/health` reports Gemini, not engine/failover |
-| Modify: `scamshield-bridge/test/mocks.mjs` | Mock Gemini `generateContent`; drop unused chat/STT if nothing calls them |
-| Modify: `scamshield-bridge/test/grok.mjs` | Happy path: Grok transcript + Gemini score + TTS |
-| Modify: `scamshield-bridge/package.json` | `test` script = grok + gemini + gemini-fail + grok-fail + boot |
-| Modify: `.env.example`, `README.MD`, `scamshield-bridge/README.md` | New pipeline + Gemini env |
-| Delete: `scamshield-bridge/src/engines/elevenlabs.js`, `src/elevenlabs.js`, `src/audio.js`, `test/elevenlabs.mjs`, `test/failover.mjs` | Dead Scribe/failover path |
+| Create: `watchdog-bridge/src/gemini.js` | `scoreWithGemini(transcript, prevScore)` — `fetch` + `normalizeRisk` |
+| Create: `watchdog-bridge/src/keys.js` | `missingApiKeys()` for boot fail-loud |
+| Create: `watchdog-bridge/test/gemini.mjs` | Isolated Gemini scorer mock test |
+| Create: `watchdog-bridge/test/gemini-fail.mjs` | Flush still stored; Gemini 503 writes no risk |
+| Create: `watchdog-bridge/test/grok-fail.mjs` | Grok down → no STT, no score |
+| Create: `watchdog-bridge/test/boot.mjs` | `missingApiKeys()` lists the three required keys |
+| Modify: `watchdog-bridge/src/risk.js` | Keep schema/guide/`normalizeRisk`; delete Grok text + heuristic |
+| Modify: `watchdog-bridge/src/engines/grok.js` | STT only — no tools, no `onRisk` |
+| Modify: `watchdog-bridge/src/callSession.js` | Flush → Gemini; no failover; inline `SAMPLE_RATE` |
+| Modify: `watchdog-bridge/src/server.js` | Boot keys; `/health` reports Gemini, not engine/failover |
+| Modify: `watchdog-bridge/test/mocks.mjs` | Mock Gemini `generateContent`; drop unused chat/STT if nothing calls them |
+| Modify: `watchdog-bridge/test/grok.mjs` | Happy path: Grok transcript + Gemini score + TTS |
+| Modify: `watchdog-bridge/package.json` | `test` script = grok + gemini + gemini-fail + grok-fail + boot |
+| Modify: `.env.example`, `README.MD`, `watchdog-bridge/README.md` | New pipeline + Gemini env |
+| Delete: `watchdog-bridge/src/engines/elevenlabs.js`, `src/elevenlabs.js`, `src/audio.js`, `test/elevenlabs.mjs`, `test/failover.mjs` | Dead Scribe/failover path |
 
 ---
 
 ### Task 1: Gemini scorer
 
 **Files:**
-- Create: `scamshield-bridge/src/gemini.js`
-- Create: `scamshield-bridge/test/gemini.mjs`
-- Modify: `scamshield-bridge/test/mocks.mjs` (add Gemini route)
-- Test: `scamshield-bridge/test/gemini.mjs`
+- Create: `watchdog-bridge/src/gemini.js`
+- Create: `watchdog-bridge/test/gemini.mjs`
+- Modify: `watchdog-bridge/test/mocks.mjs` (add Gemini route)
+- Test: `watchdog-bridge/test/gemini.mjs`
 
 **Interfaces:**
 - Consumes: `normalizeRisk`, `SCORING_GUIDE`, `RISK_SCHEMA` from `./risk.js` (existing exports; do not change their shapes)
@@ -58,7 +58,7 @@
 
 ```js
 {
-  systemInstruction: { parts: [{ text: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only.` }] },
+  systemInstruction: { parts: [{ text: `You are Watchdog, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only.` }] },
   contents: [{ role: 'user', parts: [{ text: `The previous score was ${prevScore}.\n\n${transcript}` }] }],
   generationConfig: { temperature: 0, responseMimeType: 'application/json' },
 }
@@ -69,7 +69,7 @@
 
 - [ ] **Step 1: Add the Gemini route to the shared mock**
 
-In `scamshield-bridge/test/mocks.mjs`, change the `mockHttp` signature and add a `generateContent` branch **before** the final reducer `else`. Keep the existing STT/chat/TTS/sql branches for now.
+In `watchdog-bridge/test/mocks.mjs`, change the `mockHttp` signature and add a `generateContent` branch **before** the final reducer `else`. Keep the existing STT/chat/TTS/sql branches for now.
 
 ```js
 export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
@@ -122,7 +122,7 @@ export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
 
 - [ ] **Step 2: Write the failing Gemini unit test**
 
-Create `scamshield-bridge/test/gemini.mjs`:
+Create `watchdog-bridge/test/gemini.mjs`:
 
 ```js
 import { mockHttp, check } from './mocks.mjs';
@@ -182,13 +182,13 @@ process.exit();
 
 - [ ] **Step 3: Run the test to verify it fails**
 
-Run: `node scamshield-bridge/test/gemini.mjs`
+Run: `node watchdog-bridge/test/gemini.mjs`
 
 Expected: FAIL with `ERR_MODULE_NOT_FOUND` for `../src/gemini.js` (or `scoreWithGemini` is not exported).
 
 - [ ] **Step 4: Implement `scoreWithGemini`**
 
-Create `scamshield-bridge/src/gemini.js`:
+Create `watchdog-bridge/src/gemini.js`:
 
 ```js
 import { SCORING_GUIDE, normalizeRisk } from './risk.js';
@@ -203,7 +203,7 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only.` }],
+        parts: [{ text: `You are Watchdog, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only.` }],
       },
       contents: [{
         role: 'user',
@@ -223,14 +223,14 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `node scamshield-bridge/test/gemini.mjs`
+Run: `node watchdog-bridge/test/gemini.mjs`
 
 Expected: all `PASS` lines, exit 0.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scamshield-bridge/src/gemini.js scamshield-bridge/test/gemini.mjs scamshield-bridge/test/mocks.mjs
+git add watchdog-bridge/src/gemini.js watchdog-bridge/test/gemini.mjs watchdog-bridge/test/mocks.mjs
 git commit -m "Add Gemini generateContent scorer for flushed call transcripts."
 ```
 
@@ -239,10 +239,10 @@ git commit -m "Add Gemini generateContent scorer for flushed call transcripts."
 ### Task 2: Happy path — Grok STT only, Gemini on flush
 
 **Files:**
-- Modify: `scamshield-bridge/src/engines/grok.js`
-- Modify: `scamshield-bridge/src/callSession.js`
-- Modify: `scamshield-bridge/test/grok.mjs`
-- Test: `scamshield-bridge/test/grok.mjs`
+- Modify: `watchdog-bridge/src/engines/grok.js`
+- Modify: `watchdog-bridge/src/callSession.js`
+- Modify: `watchdog-bridge/test/grok.mjs`
+- Test: `watchdog-bridge/test/grok.mjs`
 
 **Interfaces:**
 - Consumes: `scoreWithGemini(transcript, prevScore)` from Task 1; `createGrokEngine({ log, onTranscript, onFail })` (no `onRisk`)
@@ -251,7 +251,7 @@ git commit -m "Add Gemini generateContent scorer for flushed call transcripts."
 
 - [ ] **Step 1: Rewrite the happy-path test so it expects Gemini, not `report_risk`**
 
-Replace `scamshield-bridge/test/grok.mjs` with:
+Replace `watchdog-bridge/test/grok.mjs` with:
 
 ```js
 import { mockHttp, mockGrok, fakeTwilioCall, startBridge, wait, check } from './mocks.mjs';
@@ -303,19 +303,19 @@ process.exit();
 
 - [ ] **Step 2: Run the happy-path test to verify it fails**
 
-Run: `node scamshield-bridge/test/grok.mjs`
+Run: `node watchdog-bridge/test/grok.mjs`
 
 Expected: FAIL — `record_risk_event` is still 11 from Grok `report_risk`, or Gemini is never called. Do not proceed if it already PASSes (the old path is still scoring).
 
 - [ ] **Step 3: Strip scoring from Grok Voice**
 
-In `scamshield-bridge/src/engines/grok.js`:
+In `watchdog-bridge/src/engines/grok.js`:
 
 - Change the file header comment to: Grok Voice is STT only; spoken audio is never forwarded to Twilio; if the socket dies, `onFail(reason)` is called once and the caller must not fail over.
 - Replace `INSTRUCTIONS` with:
 
 ```js
-const INSTRUCTIONS = `You are ScamShield's silent transcriber on a live phone call. You are NOT a participant: never greet, answer, or address anyone. Do not call tools.`;
+const INSTRUCTIONS = `You are Watchdog's silent transcriber on a live phone call. You are NOT a participant: never greet, answer, or address anyone. Do not call tools.`;
 ```
 
 - Delete `REPORT_RISK_TOOL` and the `SCORING_GUIDE` / `RISK_SCHEMA` / `normalizeRisk` import.
@@ -325,7 +325,7 @@ const INSTRUCTIONS = `You are ScamShield's silent transcriber on a live phone ca
 
 - [ ] **Step 4: Wire CallSession flush → Gemini**
 
-In `scamshield-bridge/src/callSession.js`:
+In `watchdog-bridge/src/callSession.js`:
 
 - Replace the top comment with the new pipeline (Grok STT → Gemini → SpacetimeDB; ElevenLabs TTS only).
 - Remove imports of `createElevenLabsEngine` and `scoreTranscript`.
@@ -363,8 +363,8 @@ scoreLatest() {
 Run:
 
 ```bash
-node scamshield-bridge/test/gemini.mjs
-node scamshield-bridge/test/grok.mjs
+node watchdog-bridge/test/gemini.mjs
+node watchdog-bridge/test/grok.mjs
 ```
 
 Expected: all PASS, exit 0. Happy path reducer order is `start_call_session,sql,append_transcript_segment,record_risk_event,end_call_session`. Score is 94 from Gemini. TTS still fires once. If `session.update has no report_risk tool` fails because `grok.got` only stores event type strings, change that check to inspect the raw `session.update` the mock recorded — extend `mockGrok` to also `got.push(JSON.stringify(ev))` on each message **or** push `ev.session` when `ev.type === 'session.update'`. Preferred: in `mockGrok`:
@@ -378,12 +378,12 @@ ws.on('message', (m) => {
 });
 ```
 
-Then the check `!grok.got.some((x) => String(x).includes('report_risk'))` is valid. Re-run `node scamshield-bridge/test/grok.mjs` after that mock tweak.
+Then the check `!grok.got.some((x) => String(x).includes('report_risk'))` is valid. Re-run `node watchdog-bridge/test/grok.mjs` after that mock tweak.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scamshield-bridge/src/engines/grok.js scamshield-bridge/src/callSession.js scamshield-bridge/test/grok.mjs scamshield-bridge/test/mocks.mjs
+git add watchdog-bridge/src/engines/grok.js watchdog-bridge/src/callSession.js watchdog-bridge/test/grok.mjs watchdog-bridge/test/mocks.mjs
 git commit -m "Score flushed Grok transcripts with Gemini instead of report_risk."
 ```
 
@@ -392,16 +392,16 @@ git commit -m "Score flushed Grok transcripts with Gemini instead of report_risk
 ### Task 3: Fail loud — Gemini error and Grok down
 
 **Files:**
-- Create: `scamshield-bridge/test/gemini-fail.mjs`
-- Create: `scamshield-bridge/test/grok-fail.mjs`
-- Delete: `scamshield-bridge/test/failover.mjs`
-- Delete: `scamshield-bridge/test/elevenlabs.mjs`
-- Delete: `scamshield-bridge/src/engines/elevenlabs.js`
-- Delete: `scamshield-bridge/src/elevenlabs.js`
-- Delete: `scamshield-bridge/src/audio.js`
-- Modify: `scamshield-bridge/src/risk.js` (delete `scoreTranscript`, `scoreWithGrokText`, `heuristicScore`, `RULES`)
-- Modify: `scamshield-bridge/package.json` (`test` script)
-- Test: `scamshield-bridge/test/gemini-fail.mjs`, `scamshield-bridge/test/grok-fail.mjs`
+- Create: `watchdog-bridge/test/gemini-fail.mjs`
+- Create: `watchdog-bridge/test/grok-fail.mjs`
+- Delete: `watchdog-bridge/test/failover.mjs`
+- Delete: `watchdog-bridge/test/elevenlabs.mjs`
+- Delete: `watchdog-bridge/src/engines/elevenlabs.js`
+- Delete: `watchdog-bridge/src/elevenlabs.js`
+- Delete: `watchdog-bridge/src/audio.js`
+- Modify: `watchdog-bridge/src/risk.js` (delete `scoreTranscript`, `scoreWithGrokText`, `heuristicScore`, `RULES`)
+- Modify: `watchdog-bridge/package.json` (`test` script)
+- Test: `watchdog-bridge/test/gemini-fail.mjs`, `watchdog-bridge/test/grok-fail.mjs`
 
 **Interfaces:**
 - Consumes: `scoreWithGemini` (throws on 503); `CallSession.scoreLatest` already catches and logs without calling `setRisk`
@@ -409,7 +409,7 @@ git commit -m "Score flushed Grok transcripts with Gemini instead of report_risk
 
 - [ ] **Step 1: Write the Gemini-down integration test**
 
-Create `scamshield-bridge/test/gemini-fail.mjs`:
+Create `watchdog-bridge/test/gemini-fail.mjs`:
 
 ```js
 import { mockHttp, mockGrok, fakeTwilioCall, startBridge, wait, check } from './mocks.mjs';
@@ -450,7 +450,7 @@ process.exit();
 
 - [ ] **Step 2: Write the Grok-down integration test**
 
-Create `scamshield-bridge/test/grok-fail.mjs`:
+Create `watchdog-bridge/test/grok-fail.mjs`:
 
 ```js
 import { mockHttp, fakeTwilioCall, startBridge, wait, check } from './mocks.mjs';
@@ -484,8 +484,8 @@ process.exit();
 Run:
 
 ```bash
-node scamshield-bridge/test/gemini-fail.mjs
-node scamshield-bridge/test/grok-fail.mjs
+node watchdog-bridge/test/gemini-fail.mjs
+node watchdog-bridge/test/grok-fail.mjs
 ```
 
 Expected: `gemini-fail.mjs` PASSes if Task 2's `scoreLatest` catch is in place (Gemini 503 → no risk row). `grok-fail.mjs` FAILS if `failover()` or `STT_ENGINE` still starts ElevenLabs (look for `stt` in `names`). If `failover` is already gone from Task 2, `grok-fail.mjs` should PASS — still run it.
@@ -494,13 +494,13 @@ Expected: `gemini-fail.mjs` PASSes if Task 2's `scoreLatest` catch is in place (
 
 Delete these files (they must have no remaining imports):
 
-- `scamshield-bridge/src/engines/elevenlabs.js`
-- `scamshield-bridge/src/elevenlabs.js`
-- `scamshield-bridge/src/audio.js`
-- `scamshield-bridge/test/elevenlabs.mjs`
-- `scamshield-bridge/test/failover.mjs`
+- `watchdog-bridge/src/engines/elevenlabs.js`
+- `watchdog-bridge/src/elevenlabs.js`
+- `watchdog-bridge/src/audio.js`
+- `watchdog-bridge/test/elevenlabs.mjs`
+- `watchdog-bridge/test/failover.mjs`
 
-In `scamshield-bridge/src/risk.js`, keep only `SIGNALS`, `ACTIONS`, `SCORING_GUIDE`, `RISK_SCHEMA`, and `normalizeRisk`. Delete `scoreTranscript`, `scoreWithGrokText`, `heuristicScore`, and `RULES`. The file should be:
+In `watchdog-bridge/src/risk.js`, keep only `SIGNALS`, `ACTIONS`, `SCORING_GUIDE`, `RISK_SCHEMA`, and `normalizeRisk`. Delete `scoreTranscript`, `scoreWithGrokText`, `heuristicScore`, and `RULES`. The file should be:
 
 ```js
 export const SIGNALS = ['impersonation', 'urgency', 'threat', 'secrecy', 'otp_request',
@@ -539,7 +539,7 @@ export function normalizeRisk(a) {
 
 Confirm `callSession.js` has no `audio.js` / ElevenLabs STT imports (Task 2 already inlined `SAMPLE_RATE = 8000`).
 
-Update `scamshield-bridge/package.json` `test` script to:
+Update `watchdog-bridge/package.json` `test` script to:
 
 ```json
 "test": "node test/gemini.mjs && node test/grok.mjs && node test/gemini-fail.mjs && node test/grok-fail.mjs"
@@ -556,7 +556,7 @@ Expected: all five scripts PASS (four in `test` plus you may run `gemini.mjs` al
 - [ ] **Step 6: Commit**
 
 ```bash
-git add -A scamshield-bridge
+git add -A watchdog-bridge
 git commit -m "Fail loud on Gemini or Grok errors and remove STT failover."
 ```
 
@@ -565,14 +565,14 @@ git commit -m "Fail loud on Gemini or Grok errors and remove STT failover."
 ### Task 4: Boot keys, health, env, docs
 
 **Files:**
-- Create: `scamshield-bridge/src/keys.js`
-- Create: `scamshield-bridge/test/boot.mjs`
-- Modify: `scamshield-bridge/src/server.js`
-- Modify: `scamshield-bridge/package.json`
+- Create: `watchdog-bridge/src/keys.js`
+- Create: `watchdog-bridge/test/boot.mjs`
+- Modify: `watchdog-bridge/src/server.js`
+- Modify: `watchdog-bridge/package.json`
 - Modify: `.env.example`
 - Modify: `README.MD`
-- Modify: `scamshield-bridge/README.md`
-- Test: `scamshield-bridge/test/boot.mjs`
+- Modify: `watchdog-bridge/README.md`
+- Test: `watchdog-bridge/test/boot.mjs`
 
 **Interfaces:**
 - Consumes: `process.env`
@@ -582,7 +582,7 @@ git commit -m "Fail loud on Gemini or Grok errors and remove STT failover."
 
 - [ ] **Step 1: Write the boot-keys test**
 
-Create `scamshield-bridge/test/boot.mjs`:
+Create `watchdog-bridge/test/boot.mjs`:
 
 ```js
 import { missingApiKeys } from '../src/keys.js';
@@ -617,13 +617,13 @@ process.exit();
 
 - [ ] **Step 2: Run the boot test to verify it fails**
 
-Run: `node scamshield-bridge/test/boot.mjs`
+Run: `node watchdog-bridge/test/boot.mjs`
 
 Expected: FAIL with `ERR_MODULE_NOT_FOUND` for `../src/keys.js`.
 
 - [ ] **Step 3: Implement keys + server boot/health**
 
-Create `scamshield-bridge/src/keys.js`:
+Create `watchdog-bridge/src/keys.js`:
 
 ```js
 export const REQUIRED_API_KEYS = ['XAI_API_KEY', 'GEMINI_API_KEY', 'ELEVENLABS_API_KEY'];
@@ -633,7 +633,7 @@ export function missingApiKeys() {
 }
 ```
 
-In `scamshield-bridge/src/server.js`:
+In `watchdog-bridge/src/server.js`:
 
 - `import { missingApiKeys } from './keys.js';` (keep `import './env.js';` first so dotenv wins before the check).
 - Replace the `/health` payload `engine` / `failover` / `keys` with:
@@ -658,7 +658,7 @@ if (missing.length) {
 }
 
 server.listen(PORT, () => {
-  console.log(`ScamShield listening on http://localhost:${PORT}`);
+  console.log(`Watchdog listening on http://localhost:${PORT}`);
   console.log('  stt: grok-voice  score: gemini  tts: elevenlabs');
 });
 ```
@@ -684,12 +684,12 @@ GEMINI_MODEL=gemini-2.5-flash
 - Keep TTS vars and `ELEVENLABS_API_KEY`.
 - Change the ElevenLabs header comment from "Speech to Text + Text to Speech" to "Text to Speech warning (bridge). server/ still uses Scribe realtime."
 
-In `README.MD` Architecture items 2–3 and the ASCII diagram, replace Grok-scores / ElevenLabs-STT failover with: Grok Voice transcribes; Gemini scores each flush; ElevenLabs TTS warning only. Update the `scamshield-bridge/` row in Repo layout and the APIs line ("xAI Grok (Grok Voice STT)", "ElevenLabs (TTS warning)", "Gemini (risk score)"). Add `GEMINI_API_KEY` to the "notepad .env" comment.
+In `README.MD` Architecture items 2–3 and the ASCII diagram, replace Grok-scores / ElevenLabs-STT failover with: Grok Voice transcribes; Gemini scores each flush; ElevenLabs TTS warning only. Update the `watchdog-bridge/` row in Repo layout and the APIs line ("xAI Grok (Grok Voice STT)", "ElevenLabs (TTS warning)", "Gemini (risk score)"). Add `GEMINI_API_KEY` to the "notepad .env" comment.
 
-In `scamshield-bridge/README.md`, rewrite the opening diagram and bullets to match the spec pipeline. Remove failover rehearsal (`XAI_REALTIME_URL=ws://localhost:1`). File list: add `src/gemini.js`, `src/keys.js`; remove Scribe engine / `elevenlabs.js` / `audio.js`. Watch-the-terminal line should mention `gemini` risk, not `grok-voice` tool scores. `/health` row: keys include Gemini.
+In `watchdog-bridge/README.md`, rewrite the opening diagram and bullets to match the spec pipeline. Remove failover rehearsal (`XAI_REALTIME_URL=ws://localhost:1`). File list: add `src/gemini.js`, `src/keys.js`; remove Scribe engine / `elevenlabs.js` / `audio.js`. Watch-the-terminal line should mention `gemini` risk, not `grok-voice` tool scores. `/health` row: keys include Gemini.
 
-Update `scamshield-bridge/package.json`:
-- `description`: `"ScamShield call server: Twilio Media Streams -> Grok Voice STT -> Gemini score -> SpacetimeDB"`
+Update `watchdog-bridge/package.json`:
+- `description`: `"Watchdog call server: Twilio Media Streams -> Grok Voice STT -> Gemini score -> SpacetimeDB"`
 - `test`: `"node test/gemini.mjs && node test/grok.mjs && node test/gemini-fail.mjs && node test/grok-fail.mjs && node test/boot.mjs"`
 
 - [ ] **Step 5: Run the full bridge test suite**
@@ -701,7 +701,7 @@ Expected: every listed test prints PASS, exit 0.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scamshield-bridge/src/keys.js scamshield-bridge/src/server.js scamshield-bridge/test/boot.mjs scamshield-bridge/package.json .env.example README.MD scamshield-bridge/README.md
+git add watchdog-bridge/src/keys.js watchdog-bridge/src/server.js watchdog-bridge/test/boot.mjs watchdog-bridge/package.json .env.example README.MD watchdog-bridge/README.md
 git commit -m "Require API keys at boot and document Grok STT plus Gemini scoring."
 ```
 

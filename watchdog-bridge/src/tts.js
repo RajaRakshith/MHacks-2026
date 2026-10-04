@@ -11,7 +11,7 @@ const BEEP_AMPLITUDE = 22000;
 
 const DEFAULT_WARNING =
   process.env.SCAM_WARNING_TEXT ||
-  'This is ScamShield, protecting your calls. This is a scam. Hang up now.';
+  'This is Watchdog, protecting your calls. This is a scam. Hang up now.';
 
 function pcm16ToMulaw(sample) {
   const BIAS = 0x84;

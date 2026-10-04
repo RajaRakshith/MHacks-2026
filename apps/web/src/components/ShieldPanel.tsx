@@ -1,5 +1,5 @@
-import { tables } from "@scamshield/bindings";
-import { DEMO_USER_ID, SHIELD_STATE_LABELS, shieldState, type ShieldState } from "@scamshield/core";
+import { tables } from "@watchdog/bindings";
+import { DEMO_USER_ID, SHIELD_STATE_LABELS, shieldState, type ShieldState } from "@watchdog/core";
 import { useEffect, useMemo, useRef } from "react";
 import { useTable } from "spacetimedb/react";
 import { RiskMeter } from "./RiskMeter";
@@ -84,7 +84,7 @@ export function ShieldPanel() {
   }, [lines.length]);
 
   return (
-    <Panel title="ScamShield" aside={<StatusPill state={state} />}>
+    <Panel title="Watchdog" aside={<StatusPill state={state} />}>
       <RiskMeter score={score} active={live} />
 
       {warnings.map((warning) => (
@@ -97,7 +97,7 @@ export function ShieldPanel() {
       <div className="flex flex-col gap-2">
         <SectionLabel>Live transcript</SectionLabel>
         {!session ? (
-          <Empty>No call yet. Add ScamShield to a live call (Add Call, then Merge) using the Twilio number.</Empty>
+          <Empty>No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.</Empty>
         ) : lines.length === 0 ? (
           <Empty>Listening…</Empty>
         ) : (
@@ -128,9 +128,9 @@ export function ShieldPanel() {
       </div>
 
       <details className="text-sm text-ink">
-        <summary className="cursor-pointer font-medium">How to add ScamShield</summary>
+        <summary className="cursor-pointer font-medium">How to add Watchdog</summary>
         <p className="mt-2 text-muted">
-          Place or receive the call on your phone. Add a call to the ScamShield Twilio number, then Merge. This screen only watches that call — it does not start one.
+          Place or receive the call on your phone. Add a call to the Watchdog Twilio number, then Merge. This screen only watches that call — it does not start one.
         </p>
       </details>
     </Panel>

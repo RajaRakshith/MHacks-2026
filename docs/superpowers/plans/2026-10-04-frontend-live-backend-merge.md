@@ -6,17 +6,17 @@
 
 **Architecture:** `spacetimedb/` is the only database. The bridge is unchanged. The worker is the only Nessie client: it refreshes the account shell, executes Approved intents, and expires Held intents after 4 hours. Web and mobile subscribe to the live tables. No relay, no simulate, no mock ledger.
 
-**Tech Stack:** SpacetimeDB TypeScript module, Node 20+ worker (`tsx`, `fetch`), Vite React dashboard, Expo phone app, generated `@scamshield/bindings`, Nessie HTTP, existing Grok/Gemini/ElevenLabs bridge.
+**Tech Stack:** SpacetimeDB TypeScript module, Node 20+ worker (`tsx`, `fetch`), Vite React dashboard, Expo phone app, generated `@watchdog/bindings`, Nessie HTTP, existing Grok/Gemini/ElevenLabs bridge.
 
 ## Global Constraints
 
 - Spec: `docs/superpowers/specs/2026-10-04-frontend-live-backend-merge-design.md`
 - Canonical `userId` is `demo-user` (`DEFAULT_USER_ID`). Margaret login is a demo door only.
-- Local database name is `scamshield-dev`. Maincloud remains `scamshield`.
+- Local database name is `watchdog-dev`. Maincloud remains `watchdog`.
 - Fail-stop: no mock Margaret ledger, no `mock-` Nessie transfer ids, no scripted call, no “Sent” unless Nessie completed.
-- Held copy (exact): `Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.`
+- Held copy (exact): `Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.`
 - `HOLD_TTL_MS = 4 * 60 * 60 * 1000`. After expiry the intent is `Expired` and still not sent. No Release / Approve / force on the demo UI.
-- Do not change Grok / Gemini / ElevenLabs behavior on `scamshield-bridge/`. `npm run bridge:test` must still pass.
+- Do not change Grok / Gemini / ElevenLabs behavior on `watchdog-bridge/`. `npm run bridge:test` must still pass.
 - Do not delete the `spacetime/` or `apps/relay` trees. `pnpm dev` must not publish or start them.
 - Do not put `NESSIE_API_KEY` in the browser or a public Spacetime table.
 - Nessie is required for the bank shell. Worker stays up on Nessie errors and writes no snapshot.
@@ -50,7 +50,7 @@
 | Modify: `apps/mobile/src/**` | Same tables; drop relay |
 | Delete: `apps/web/src/lib/relay.ts`, `apps/web/src/components/TryPage.tsx`, `apps/web/src/components/AnalysisPanel.tsx` | Dead dashboard path |
 | Delete: `apps/mobile/src/lib/relay.ts` | Dead phone path |
-| Keep: `scamshield-bridge/**`, `spacetime/**`, `apps/relay/**` | Bridge unchanged; old module/relay unpublished |
+| Keep: `watchdog-bridge/**`, `spacetime/**`, `apps/relay/**` | Bridge unchanged; old module/relay unpublished |
 
 ---
 
@@ -69,7 +69,7 @@
 ```ts
 export const HOLD_TTL_MS = 4 * 60 * 60 * 1000;
 export const BANK_HOLD_REASON =
-  'Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.';
+  'Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.';
 
 export function shouldHold(
   hasActiveSession: boolean,
@@ -121,7 +121,7 @@ test('can expire only a Held row whose time is up', () => {
 test('bank hold copy is exact', () => {
   assert.equal(
     BANK_HOLD_REASON,
-    'Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.'
+    'Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.'
   );
 });
 ```
@@ -138,7 +138,7 @@ Expected: FAIL (cannot find `../src/policy.ts`)
 // spacetimedb/src/policy.ts
 export const HOLD_TTL_MS = 4 * 60 * 60 * 1000;
 export const BANK_HOLD_REASON =
-  'Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.';
+  'Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.';
 
 export function shouldHold(hasActiveSession: boolean, riskScore: number, threshold: number): boolean {
   return hasActiveSession && riskScore >= threshold;
@@ -489,7 +489,7 @@ Implement GET helpers with `fetch(`${baseUrl}${path}?key=${apiKey}`)`.
 
 In `transfer-worker.ts`, after `onConnect`, call `void refreshAccount(conn)` once. After `completeTransfer` / `failTransfer`, call it again.
 
-Default `DATABASE_NAME` to `process.env.SPACETIME_DATABASE ?? 'scamshield-dev'`.
+Default `DATABASE_NAME` to `process.env.SPACETIME_DATABASE ?? 'watchdog-dev'`.
 
 - [ ] **Step 4: Run tests**
 
@@ -592,7 +592,7 @@ git commit -m "Expire held transfers after 4 hours without sending them."
 - Modify: `package.json`
 
 **Interfaces:**
-- Consumes: live module path `spacetimedb`, database `scamshield-dev`
+- Consumes: live module path `spacetimedb`, database `watchdog-dev`
 - Produces: `pnpm dev` publishes live module, generates `packages/bindings/src` and `worker/src/module_bindings`, starts worker + web. No relay. No `MOCK`.
 
 - [ ] **Step 1: Point publish/generate at the live module**
@@ -600,7 +600,7 @@ git commit -m "Expire held transfers after 4 hours without sending them."
 In `scripts/dev.mjs`:
 
 - Change `--module-path spacetime` to `--module-path spacetimedb` (both publish and generate).
-- Default `database` to `env.SPACETIME_DATABASE || env.SPACETIME_DB || "scamshield-dev"`.
+- Default `database` to `env.SPACETIME_DATABASE || env.SPACETIME_DB || "watchdog-dev"`.
 - After generating `packages/bindings/src`, also generate `worker/src/module_bindings` (second `spacetime generate` call).
 - Replace `start("relay", ...)` with `start("worker", "npm", ["run", "worker:dev"])`.
 - Delete the `mock` / `Mode: MOCK` log.
@@ -613,7 +613,7 @@ If `spacetime.json` `generate` accepts a second `out-dir`, add `packages/binding
 `.env.example`:
 
 - Remove `MOCK=1`, `RELAY_PORT`, `NESSIE_KEY`, `NESSIE_BASE`.
-- Set `SPACETIME_DATABASE=scamshield-dev`. Remove the `SPACETIME_DB=scamshield` default (optional comment: web now uses `SPACETIME_DATABASE` via `VITE_SPACETIME_DB`).
+- Set `SPACETIME_DATABASE=watchdog-dev`. Remove the `SPACETIME_DB=watchdog` default (optional comment: web now uses `SPACETIME_DATABASE` via `VITE_SPACETIME_DB`).
 - Add `NESSIE_ACCOUNT_ID=`.
 - Keep `DEFAULT_USER_ID=demo-user`, `NESSIE_API_KEY`, `NESSIE_BASE_URL`.
 
@@ -673,7 +673,7 @@ describe('live helpers', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --filter @scamshield/core exec vitest run test/live.test.ts`
+Run: `pnpm --filter @watchdog/core exec vitest run test/live.test.ts`
 
 Expected: FAIL (cannot find `./live`)
 
@@ -681,7 +681,7 @@ Expected: FAIL (cannot find `./live`)
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --filter @scamshield/core exec vitest run test/live.test.ts`
+Run: `pnpm --filter @watchdog/core exec vitest run test/live.test.ts`
 
 Expected: PASS
 
@@ -697,7 +697,7 @@ git commit -m "Add shared live-call helpers for the bank UI."
 ### Task 8: Web dashboard — live tables
 
 **Files:**
-- Modify: `apps/web/src/main.tsx` — default database `scamshield-dev`
+- Modify: `apps/web/src/main.tsx` — default database `watchdog-dev`
 - Modify: `apps/web/src/App.tsx` — drop `/try` and `AnalysisPanel`; Offline banner stays
 - Modify: `apps/web/src/components/ShieldPanel.tsx`
 - Modify: `apps/web/src/components/AccountPanel.tsx`
@@ -707,7 +707,7 @@ git commit -m "Add shared live-call helpers for the bank UI."
 - Create: `scripts/check-ui-wiring.mjs`
 
 **Interfaces:**
-- Consumes: generated `tables` / `reducers` from `@scamshield/bindings` after Task 6 generate; `DEMO_USER_ID`, `dollarsToCents`, `shieldState` from `@scamshield/core`
+- Consumes: generated `tables` / `reducers` from `@watchdog/bindings` after Task 6 generate; `DEMO_USER_ID`, `dollarsToCents`, `shieldState` from `@watchdog/core`
 - Produces: dashboard that compiles against live tables. No `procedures`, no `tables.call`, no `postRelay`.
 
 **ShieldPanel**
@@ -717,12 +717,12 @@ git commit -m "Add shared live-call helpers for the bank UI."
 - Transcript: filter `sessionId === session.id`, sort by `occurredAt` / `id`. Single-column stream (no speaker)
 - Warnings: `riskEvent` rows for that session with `warningMessage` set, newest first
 - Signals: unique `signalType` chips
-- Empty copy: `No call yet. Add ScamShield to a live call (Add Call, then Merge) using the Twilio number.`
+- Empty copy: `No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.`
 - Help `<details>`:
 
 ```
-How to add ScamShield
-Place or receive the call on your phone. Add a call to the ScamShield Twilio number, then Merge. This screen only watches that call — it does not start one.
+How to add Watchdog
+Place or receive the call on your phone. Add a call to the Watchdog Twilio number, then Merge. This screen only watches that call — it does not start one.
 ```
 
 - Remove Protect, Simulate, scenario dropdown, End call, I'm on a suspicious call, tactics, claim checks, guard banner
@@ -752,7 +752,7 @@ Place or receive the call on your phone. Add a call to the ScamShield Twilio num
 - Drop the Mock mode pill
 
 **main.tsx**
-- `import.meta.env.VITE_SPACETIME_DB ?? "scamshield-dev"`
+- `import.meta.env.VITE_SPACETIME_DB ?? "watchdog-dev"`
 
 **Wiring check** — `scripts/check-ui-wiring.mjs` in full:
 
@@ -797,7 +797,7 @@ This requires the live module published (Task 6 / `pnpm dev` or `npm run spaceti
 
 - [ ] **Step 3: Run wiring check and web typecheck**
 
-Run: `node scripts/check-ui-wiring.mjs && pnpm --filter @scamshield/web typecheck`
+Run: `node scripts/check-ui-wiring.mjs && pnpm --filter @watchdog/web typecheck`
 
 Expected: wiring PASS. Typecheck PASS once bindings exist. If typecheck fails only because bindings are stale, publish + generate, then re-run.
 
@@ -813,7 +813,7 @@ git commit -m "Point the web dashboard at the live call and money-gate tables."
 ### Task 9: Phone app
 
 **Files:**
-- Modify: `apps/mobile/src/lib/config.ts` — `SPACETIME_DB` default `scamshield-dev`; drop `relayUrl` from required endpoints
+- Modify: `apps/mobile/src/lib/config.ts` — `SPACETIME_DB` default `watchdog-dev`; drop `relayUrl` from required endpoints
 - Modify: `apps/mobile/src/lib/useShield.ts` — `callSession` instead of `call` / `guard`
 - Modify: `apps/mobile/src/app/(tabs)/shield.tsx` — same Shield behavior as web (help, no Protect/Simulate)
 - Modify: `apps/mobile/src/app/(tabs)/index.tsx` — snapshot + activity; Nessie error copy; no bills
@@ -821,7 +821,7 @@ git commit -m "Point the web dashboard at the live call and money-gate tables."
 - Delete: `apps/mobile/src/lib/relay.ts`
 
 **Interfaces:**
-- Consumes: same bindings and `@scamshield/core` live helpers as Task 8
+- Consumes: same bindings and `@watchdog/core` live helpers as Task 8
 - Produces: three tabs still work; no relay
 
 - [ ] **Step 1: Run wiring check (mobile still has postRelay — FAIL until this task)**
@@ -856,7 +856,7 @@ git commit -m "Point the phone app at the live module and drop the relay."
 - Delete or stop running: `packages/core/test/rules.test.ts` (4-hour guard / trusted-payee policy the UI no longer uses). Keep `packages/core/test/score.test.ts` and `packages/core/test/live.test.ts`. Delete `packages/core/test/verify.test.ts` and `packages/core/test/analyzer.test.ts` only if they exist solely for claim/simulate playback (they do — delete both). Keep `insights.test.ts` only if nothing in the merged UI imports insights; if Account analysis is gone, delete `insights.test.ts` too so `pnpm test:dashboard` cannot pass on leftover analysis.
 
 **Interfaces:**
-- Consumes: published live module `scamshield-dev` on local Spacetime
+- Consumes: published live module `watchdog-dev` on local Spacetime
 - Produces: acceptance that asserts Held + bank reason, not fixture scenarios
 
 - [ ] **Step 1: Replace `scripts/acceptance.ts`**
@@ -864,7 +864,7 @@ git commit -m "Point the phone app at the live module and drop the relay."
 ```ts
 import { execFileSync } from 'node:child_process';
 
-const DB = process.env.SPACETIME_DATABASE ?? 'scamshield-dev';
+const DB = process.env.SPACETIME_DATABASE ?? 'watchdog-dev';
 const SERVER = (process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000').replace(/^ws/, 'http');
 
 function call(name: string, json: string): void {
@@ -948,7 +948,7 @@ Do not call the relay.
 - [ ] **Step 2: Point root `test` at the automated suite that does not need Twilio**
 
 ```json
-"test": "npm run bridge:test && npm run test:policy && npm run test:worker && npm run test:ui-wiring && pnpm --filter @scamshield/core test"
+"test": "npm run bridge:test && npm run test:policy && npm run test:worker && npm run test:ui-wiring && pnpm --filter @watchdog/core test"
 ```
 
 Add `"test:worker": "tsx --test worker/test/*.test.ts"`.
@@ -968,7 +968,7 @@ npm run tunnel
 
 Twilio webhook still `https://HOST/twilio/voice?userId=demo-user`.
 
-Delete the “60-second demo, mock mode” / Simulate call instructions. Add: merge ScamShield on the phone; dashboard watches; Send $2000 during a high-risk call → Held, come to the bank, 4 hours.
+Delete the “60-second demo, mock mode” / Simulate call instructions. Add: merge Watchdog on the phone; dashboard watches; Send $2000 during a high-risk call → Held, come to the bank, 4 hours.
 
 - [ ] **Step 4: Run automated tests**
 
@@ -997,7 +997,7 @@ git commit -m "Accept live holds and document the single running stack."
 
 | Spec requirement | Task |
 |---|---|
-| One DB `spacetimedb/` / `scamshield-dev` | 6 |
+| One DB `spacetimedb/` / `watchdog-dev` | 6 |
 | Bridge unchanged | (no task touches it) |
 | Incoming-only + help copy | 8, 9 |
 | No simulate / relay / MOCK | 6, 8, 9, 10 |

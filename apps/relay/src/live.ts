@@ -30,7 +30,7 @@ export function liveConfigProblem(): string | null {
   return missing.length ? `Live calls need ${missing.join(", ")} in .env.` : null;
 }
 
-/** POST /protect in real mode: Twilio calls the customer's phone from the ScamShield number. */
+/** POST /protect in real mode: Twilio calls the customer's phone from the Watchdog number. */
 export async function ringCustomer(): Promise<{ ok: true; callSid: string } | { ok: false; error: string }> {
   const problem = liveConfigProblem();
   if (problem) return { ok: false, error: problem };
@@ -71,7 +71,7 @@ export function voiceTwiml(callSid: string): string {
     "  <Say>Scam Shield is listening. Tap merge calls now.</Say>",
     "  <Dial>",
     // The conference keeps this leg open, and is where the M10 whisper will coach the customer.
-    `    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="true" waitUrl="">${xml(`scamshield-${callSid || "call"}`)}</Conference>`,
+    `    <Conference beep="false" startConferenceOnEnter="true" endConferenceOnExit="true" waitUrl="">${xml(`watchdog-${callSid || "call"}`)}</Conference>`,
     "  </Dial>",
     "</Response>",
   ].join("\n");
@@ -174,7 +174,7 @@ export function createMediaServer(): WebSocketServer {
           return;
         }
         cancelSimulation();
-        // SPEC-QUESTION: ScamShield calls the customer and the scammer is merged in on
+        // SPEC-QUESTION: Watchdog calls the customer and the scammer is merged in on
         // the handset, so Twilio never sees the scammer's number. It is stored as "".
         // The same merge means the audio is one mixed track: every line is labeled
         // "caller" and the analyzer works out who is speaking from the words.

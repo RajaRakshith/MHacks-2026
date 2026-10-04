@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { hasStoredTransferId } from './nessie-transfer-id.ts';
 
-const DB = process.env.SPACETIME_DATABASE ?? 'scamshield-dev';
+const DB = process.env.SPACETIME_DATABASE ?? 'watchdog-dev';
 const SERVER = (process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000').replace(/^ws/, 'http');
 
 function call(name: string, json: string): void {

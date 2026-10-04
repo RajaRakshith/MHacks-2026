@@ -12,7 +12,7 @@ export const config = {
   elevenLabsSttModel: process.env.ELEVENLABS_STT_MODEL ?? 'scribe_v2_realtime',
 
   spacetimeUri: process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000',
-  spacetimeDatabase: process.env.SPACETIME_DATABASE ?? 'scamshield-dev',
+  spacetimeDatabase: process.env.SPACETIME_DATABASE ?? 'watchdog-dev',
   spacetimeToken: process.env.SPACETIME_TOKEN,
 
   /** Fail over to ElevenLabs if Grok is silent/errors for this long (ms). */

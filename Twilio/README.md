@@ -46,7 +46,7 @@ npm run dev
 You should see:
 
 ```text
-ScamShield Twilio POC listening on http://localhost:3000
+Watchdog Twilio POC listening on http://localhost:3000
   POST /voice   — Twilio voice webhook (TwiML + Media Stream)
   WS   /stream  — Twilio Media Streams
   GET  /health  — liveness

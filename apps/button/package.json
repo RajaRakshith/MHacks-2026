@@ -1,5 +1,5 @@
 {
-  "name": "@scamshield/button",
+  "name": "@watchdog/button",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@scamshield/bindings": "workspace:*",
-    "@scamshield/core": "workspace:*",
+    "@watchdog/bindings": "workspace:*",
+    "@watchdog/core": "workspace:*",
     "dotenv": "^18.0.5",
     "spacetimedb": "2.10.*",
     "undici": "6"

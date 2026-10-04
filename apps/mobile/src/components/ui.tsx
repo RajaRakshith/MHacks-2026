@@ -1,5 +1,5 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { SHIELD_STATE_LABELS, type ShieldState } from "@scamshield/core";
+import { SHIELD_STATE_LABELS, type ShieldState } from "@watchdog/core";
 import type { ComponentProps, ReactNode } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { useTheme, type Theme } from "../lib/theme";
@@ -101,7 +101,7 @@ export function StatusPill({ state }: { state: ShieldState }) {
   const t = useTheme();
   const c = shieldColors(t, state);
   return (
-    <View style={[styles.pill, { backgroundColor: c.fill }]} accessibilityRole="text" accessibilityLabel={`ScamShield status: ${SHIELD_STATE_LABELS[state]}`}>
+    <View style={[styles.pill, { backgroundColor: c.fill }]} accessibilityRole="text" accessibilityLabel={`Watchdog status: ${SHIELD_STATE_LABELS[state]}`}>
       <View style={[styles.dot, { backgroundColor: c.dot }]} />
       <Text style={{ color: t.ink, fontSize: 13, fontWeight: "700" }}>{SHIELD_STATE_LABELS[state]}</Text>
     </View>

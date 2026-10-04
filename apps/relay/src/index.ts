@@ -52,7 +52,7 @@ app.post<{ Body: SimulateBody | null }>("/simulate", async (req, reply) => runSi
 
 /**
  * The hardware button and the dashboard's "Protect this call" both land here.
- * Real mode: Twilio rings the customer's phone from the ScamShield number, and the customer taps Merge.
+ * Real mode: Twilio rings the customer's phone from the Watchdog number, and the customer taps Merge.
  */
 // SPEC-QUESTION: with MOCK=1, or when Twilio is not configured, there is no
 // phone to ring, so /protect plays a scripted call instead (the scenario in

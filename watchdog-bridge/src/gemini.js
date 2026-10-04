@@ -10,7 +10,7 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only. Required JSON keys: score (0-100 integer), signals (from the known list), action, warning, evidence.` }],
+        parts: [{ text: `You are Watchdog, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only. Required JSON keys: score (0-100 integer), signals (from the known list), action, warning, evidence.` }],
       },
       contents: [{
         role: 'user',

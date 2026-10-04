@@ -1,5 +1,5 @@
 /**
- * TTS integration hooks for scamshield-bridge.
+ * TTS integration hooks for watchdog-bridge.
  *
  * CallSession calls playScamWarning() once when risk reaches TTS_WARNING_SCORE;
  * POST /calls/:callSid/warn forces it during a live call.

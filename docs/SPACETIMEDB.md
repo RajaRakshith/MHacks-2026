@@ -1,4 +1,4 @@
-# ScamShield SpacetimeDB Backend
+# Watchdog SpacetimeDB Backend
 
 SpacetimeDB is the **single source of truth** for live call state and transfer policy. It replaces three things you'd otherwise hand-roll: the live state store, pub/sub fan-out, and the atomic policy check.
 
@@ -121,7 +121,7 @@ Terminal B (repo root — auto-publish + generate bindings on save):
 npm run spacetime:dev
 ```
 
-Or one-shot publish to local dev DB (`scamshield-dev` via `spacetime.dev.json`):
+Or one-shot publish to local dev DB (`watchdog-dev` via `spacetime.dev.json`):
 ```bash
 npm run spacetime:publish:local
 ```
@@ -161,10 +161,10 @@ With the module published locally:
 
 ```bash
 # Start a call session
-spacetime call scamshield start_call_session '{"userId":"demo-user"}'
+spacetime call watchdog start_call_session '{"userId":"demo-user"}'
 
 # Escalate risk (simulating Grok output)
-spacetime call scamshield record_risk_event '{
+spacetime call watchdog record_risk_event '{
   "sessionId": 1,
   "signalType": "otp_request",
   "transcriptExcerpt": "Please read me the verification code on your screen.",
@@ -173,22 +173,22 @@ spacetime call scamshield record_risk_event '{
 }'
 
 # Bank app requests transfer — should be HELD
-spacetime call scamshield request_transfer '{
+spacetime call watchdog request_transfer '{
   "userId": "demo-user",
   "amountCents": 200000,
   "destinationAccount": "scammer-account",
   "memo": "urgent wire"
 }'
 
-spacetime sql scamshield "SELECT id, status, hold_reason, risk_score_at_decision FROM transfer_intents"
+spacetime sql watchdog "SELECT id, status, hold_reason, risk_score_at_decision FROM transfer_intents"
 ```
 
 End the call and release (or force override):
 
 ```bash
-spacetime call scamshield end_call_session '{"sessionId": 1}'
+spacetime call watchdog end_call_session '{"sessionId": 1}'
 
-spacetime call scamshield release_held_transfer '{"intentId": 1, "force": false}'
+spacetime call watchdog release_held_transfer '{"intentId": 1, "force": false}'
 ```
 
 ## Integration contracts for other teammates
@@ -237,7 +237,7 @@ Key values:
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `SPACETIME_URI` | `ws://127.0.0.1:3000` | WebSocket endpoint |
-| `SPACETIME_DATABASE` | `scamshield` | Database name |
+| `SPACETIME_DATABASE` | `watchdog` | Database name |
 | `NESSIE_API_KEY` | — | Capital One Nessie API key |
 
 ## File layout

@@ -6,7 +6,7 @@ Status: approved in conversation; awaiting spec review
 
 ## Goal
 
-On `scamshield-bridge` only: Grok Voice transcribes the live Twilio audio stream. On each transcript flush, Gemini scores the full call so far (0–100). That score is written to SpacetimeDB. `request_transfer` remains the money gate. ElevenLabs TTS still speaks a one-time in-call warning at high risk. No STT failover, no scoring fallbacks.
+On `watchdog-bridge` only: Grok Voice transcribes the live Twilio audio stream. On each transcript flush, Gemini scores the full call so far (0–100). That score is written to SpacetimeDB. `request_transfer` remains the money gate. ElevenLabs TTS still speaks a one-time in-call warning at high risk. No STT failover, no scoring fallbacks.
 
 ## Current state (what we are changing)
 
@@ -46,7 +46,7 @@ Rules:
 
 ## Components
 
-Scope: `scamshield-bridge/` plus root `.env.example` and the short README/docs lines that describe the old Grok-scores / ElevenLabs-STT path. Do not change `server/`, `Twilio/`, `spacetimedb/`, or `worker/`.
+Scope: `watchdog-bridge/` plus root `.env.example` and the short README/docs lines that describe the old Grok-scores / ElevenLabs-STT path. Do not change `server/`, `Twilio/`, `spacetimedb/`, or `worker/`.
 
 | Piece | Change |
 |---|---|

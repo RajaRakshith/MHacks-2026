@@ -1,0 +1,54 @@
+- generic [ref=f1e3]:
+  - banner [ref=f1e4]:
+    - generic [ref=f1e5]: C1 Mockup
+    - generic [ref=f1e10]:
+      - status [ref=f1e11]: Offline
+      - button "Sign out" [ref=f1e13]
+  - alert [ref=f1e14]:
+    - text: Cannot reach the database. Start everything with
+    - code [ref=f1e15]: pnpm dev
+    - text: .
+  - main [ref=f1e16]:
+    - region "Account" [ref=f1e17]:
+      - heading "Account" [level=2] [ref=f1e19]
+      - generic [ref=f1e20]:
+        - paragraph [ref=f1e21]: Loading account…
+        - generic [ref=f1e22]:
+          - heading "Recent activity" [level=3] [ref=f1e23]
+          - paragraph [ref=f1e24]: No activity yet.
+    - region "Watchdog" [ref=f1e25]:
+      - generic [ref=f1e26]:
+        - heading "Watchdog" [level=2] [ref=f1e27]
+        - status [ref=f1e28]: Idle
+      - generic [ref=f1e30]:
+        - generic [ref=f1e31]:
+          - generic [ref=f1e32]:
+            - paragraph [ref=f1e33]:
+              - generic [ref=f1e34]: –
+              - generic [ref=f1e35]: / 100 risk
+            - generic [ref=f1e36]: No call
+          - meter "Scam risk" [ref=f1e37]
+          - generic [aria-hidden] [ref=f1e40]:
+            - generic [ref=f1e41]: "0"
+            - generic [ref=f1e42]: "40"
+            - generic [ref=f1e43]: "70"
+            - generic [ref=f1e44]: "100"
+        - generic [ref=f1e45]:
+          - heading "Live transcript" [level=3] [ref=f1e46]
+          - paragraph [ref=f1e47]: No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.
+        - generic [ref=f1e48]:
+          - heading "Signals" [level=3] [ref=f1e49]
+          - paragraph [ref=f1e50]: None yet.
+        - group [ref=f1e51]:
+          - generic "How to add Watchdog" [ref=f1e52] [cursor=pointer]
+    - region "Held transactions" [ref=f1e53]:
+      - heading "Held transactions" [level=2] [ref=f1e55]
+      - generic [ref=f1e56]:
+        - generic [ref=f1e57]:
+          - paragraph [ref=f1e58]: Money protected
+          - paragraph [ref=f1e59]: $0
+          - paragraph [ref=f1e60]: Held or expired before the money was sent
+        - generic [ref=f1e61]:
+          - heading "On hold" [level=3] [ref=f1e62]
+          - paragraph [ref=f1e63]: Nothing is on hold.
+  - contentinfo [ref=f1e64]: Demo app. Mock data from the Capital One Nessie hackathon API.

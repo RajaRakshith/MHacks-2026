@@ -11,7 +11,7 @@ const server = createServer(async (req: IncomingMessage, res: ServerResponse) =>
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? 'localhost'}`);
 
   if (req.method === 'GET' && url.pathname === '/health') {
-    json(res, 200, { ok: true, service: 'scamshield-ingestion' });
+    json(res, 200, { ok: true, service: 'watchdog-ingestion' });
     return;
   }
 

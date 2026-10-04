@@ -1,4 +1,4 @@
-import { tables } from "@scamshield/bindings";
+import { tables } from "@watchdog/bindings";
 import { useMemo } from "react";
 import { useTable } from "spacetimedb/react";
 import { shortDay, signedUsd, usd } from "../lib/format";

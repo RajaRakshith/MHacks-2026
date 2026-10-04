@@ -30,6 +30,6 @@ test('can expire only a Held row whose time is up', () => {
 test('bank hold copy is exact', () => {
   assert.equal(
     BANK_HOLD_REASON,
-    'Come to the bank to complete this transfer. ScamShield is holding it for 4 hours because this call looks like a scam.'
+    'Come to the bank to complete this transfer. Watchdog is holding it for 4 hours because this call looks like a scam.'
   );
 });

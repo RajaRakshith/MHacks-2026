@@ -4,7 +4,7 @@
  * C1 Mockup: a mock bank for the demo, in Capital One's navy blue with a red
  * accent. It does not use Capital One's logo.
  *
- * Status colors (good / warning / critical) are reserved for ScamShield state
+ * Status colors (good / warning / critical) are reserved for Watchdog state
  * and always appear with an icon or a label, never as color alone. Each has a
  * lighter "track" step of the same ramp for meter tracks and badge fills.
  */

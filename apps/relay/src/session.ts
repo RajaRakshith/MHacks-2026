@@ -1,4 +1,4 @@
-import { redactAnalyzerOutput, redactDigits, type AnalyzerOutput, type Speaker } from "@scamshield/core";
+import { redactAnalyzerOutput, redactDigits, type AnalyzerOutput, type Speaker } from "@watchdog/core";
 import type { Db } from "./db";
 
 const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));

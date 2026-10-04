@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 
 const FLUSH_IDLE_MS = 1500; // write a transcript once it stops changing for this long
 
-const INSTRUCTIONS = `You are ScamShield's silent transcriber on a live phone call. You are NOT a participant: never greet, answer, or address anyone. Do not call tools.`;
+const INSTRUCTIONS = `You are Watchdog's silent transcriber on a live phone call. You are NOT a participant: never greet, answer, or address anyone. Do not call tools.`;
 
 export function createGrokEngine({ log, onTranscript, onFail }) {
   const url = process.env.XAI_REALTIME_URL ||

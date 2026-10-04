@@ -31,7 +31,7 @@ const server = http.createServer((req, res) => {
 
 Object.assign(process.env, {
   SPACETIME_URI: 'http://localhost:9701',
-  SPACETIME_DATABASE: 'scamshield',
+  SPACETIME_DATABASE: 'watchdog',
 });
 
 try {
