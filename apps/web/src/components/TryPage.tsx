@@ -1,5 +1,6 @@
 import { useRef, useState, type FormEvent } from "react";
 import { postRelay } from "../lib/relay";
+import { AnalysisPanel } from "./AnalysisPanel";
 import { ShieldPanel } from "./ShieldPanel";
 import { Button, Panel } from "./ui";
 
@@ -100,7 +101,7 @@ export function TryPage() {
   }
 
   return (
-    <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-2">
+    <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
       <Panel title="Type a line of the call">
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <fieldset className="flex gap-2">
@@ -194,6 +195,7 @@ export function TryPage() {
       </Panel>
 
       <ShieldPanel />
+      <AnalysisPanel />
     </main>
   );
 }

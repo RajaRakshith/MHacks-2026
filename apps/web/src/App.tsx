@@ -1,6 +1,7 @@
 import { tables } from "@scamshield/bindings";
 import { useSpacetimeDB, useTable } from "spacetimedb/react";
 import { AccountPanel } from "./components/AccountPanel";
+import { AnalysisPanel } from "./components/AnalysisPanel";
 import { HeldPanel } from "./components/HeldPanel";
 import { ShieldPanel } from "./components/ShieldPanel";
 import { TryPage } from "./components/TryPage";
@@ -56,7 +57,10 @@ export function App() {
         <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
           <AccountPanel />
           <ShieldPanel />
-          <HeldPanel />
+          <div className="flex min-w-0 flex-col gap-4">
+            <HeldPanel />
+            <AnalysisPanel />
+          </div>
         </main>
       )}
 

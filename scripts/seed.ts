@@ -119,16 +119,49 @@ async function main(): Promise<void> {
   const customerId = await customer("Margaret", "Hale", address);
   console.log(`  customer   Margaret Hale (${customerId})`);
 
-  const accountId = await create(`/customers/${customerId}/accounts`, { type: "Checking", nickname: "Everyday Checking", rewards: 0, balance: BALANCE - DEPOSIT });
-  const depositId = await create(`/accounts/${accountId}/deposits`, {
-    medium: "balance",
-    transaction_date: day(-3),
-    status: "completed",
-    amount: DEPOSIT,
-    description: "Social Security",
-  });
-  console.log(`  account    Everyday Checking (${accountId}): opens at $${BALANCE - DEPOSIT}`);
-  console.log(`  deposit    $${DEPOSIT} Social Security (${depositId}): dashboard balance $${BALANCE}`);
+  // History the dashboard and the account analysis read back. Nessie stores
+  // whole dollars and never changes `balance`, so the account opens at the
+  // amount that makes opening balance plus activity come to $8,400.
+  const deposits = [
+    { transaction_date: day(-3), amount: DEPOSIT, description: "Social Security" },
+    { transaction_date: day(-17), amount: 420, description: "Pension, Washtenaw County Schools" },
+  ];
+  const withdrawals = [{ transaction_date: day(-9), amount: 60, description: "ATM withdrawal" }];
+  const transfers = [{ transaction_date: day(-2), amount: 1100, description: "Transfer to Oakwood Apartments" }];
+  const shops = [
+    { name: "Kroger", category: "grocery", purchases: [{ purchase_date: day(-11), amount: 72 }, { purchase_date: day(-4), amount: 64 }] },
+    { name: "Corner Pharmacy", category: "pharmacy", purchases: [{ purchase_date: day(-6), amount: 18 }] },
+    { name: "Stadium Hardware", category: "hardware_store", purchases: [{ purchase_date: day(-1), amount: 23 }] },
+  ];
+  const sum = (rows: { amount: number }[]): number => rows.reduce((total, r) => total + r.amount, 0);
+  const opening = BALANCE - sum(deposits) + sum(withdrawals) + sum(transfers) + sum(shops.flatMap((m) => m.purchases));
+
+  const accountId = await create(`/customers/${customerId}/accounts`, { type: "Checking", nickname: "Everyday Checking", rewards: 0, balance: opening });
+  console.log(`  account    Everyday Checking (${accountId}): opens at $${opening}, dashboard balance $${BALANCE}`);
+
+  let depositId = "";
+  for (const d of deposits) {
+    const id = await create(`/accounts/${accountId}/deposits`, { medium: "balance", status: "completed", ...d });
+    depositId ||= id;
+  }
+  for (const w of withdrawals) await create(`/accounts/${accountId}/withdrawals`, { medium: "balance", status: "completed", ...w });
+  for (const t of transfers) await create(`/accounts/${accountId}/transfers`, { status: "completed", ...t });
+  console.log(`  history    ${deposits.length} deposits, ${withdrawals.length} withdrawal, ${transfers.length} transfer`);
+
+  // Merchants are shared across the key, so existing ones are reused.
+  const existing = await request("GET", "/merchants");
+  const known = Array.isArray(existing.json) ? (existing.json as { _id: string; name: string }[]) : [];
+  let purchaseCount = 0;
+  for (const shop of shops) {
+    const merchantId =
+      known.find((m) => m.name === shop.name)?._id ??
+      (await create("/merchants", { name: shop.name, category: shop.category, address: { ...address, street_number: "100", street_name: "Main Street" }, geocode: { lat: 42.28, lng: -83.74 } }));
+    for (const p of shop.purchases) {
+      await create(`/accounts/${accountId}/purchases`, { merchant_id: merchantId, medium: "balance", status: "completed", description: shop.name, ...p });
+      purchaseCount++;
+    }
+  }
+  console.log(`  purchases  ${purchaseCount} at ${shops.length} merchants`);
 
   const billId = await create(`/accounts/${accountId}/bills`, {
     status: "recurring",
@@ -138,7 +171,11 @@ async function main(): Promise<void> {
     recurring_date: Number(day(9).slice(8, 10)),
     payment_amount: DTE_BILL,
   });
-  console.log(`  bill       $${DTE_BILL} DTE Energy, recurring (${billId})`);
+  // Every bill needs recurring_date: one saved without it makes the account's bill list fail.
+  const dayOfMonth = (offset: number): number => Number(day(offset).slice(8, 10));
+  await create(`/accounts/${accountId}/bills`, { status: "pending", payee: "Ann Arbor Water", nickname: "Water", payment_date: day(5), recurring_date: dayOfMonth(5), payment_amount: 38 });
+  await create(`/accounts/${accountId}/bills`, { status: "completed", payee: "Oakwood Apartments", nickname: "Rent", payment_date: day(-2), recurring_date: dayOfMonth(-2), payment_amount: 1100 });
+  console.log(`  bills      $${DTE_BILL} DTE Energy (recurring), $38 water (pending), $1,100 rent (paid)`);
 
   const landlordCustomerId = await customer("Oakwood", "Apartments", { ...address, street_number: "1200", street_name: "Oakwood Avenue" });
   const landlordAccountId = await create(`/customers/${landlordCustomerId}/accounts`, { type: "Checking", nickname: "Oakwood Apartments rent", rewards: 0, balance: 0 });
