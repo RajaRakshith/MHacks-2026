@@ -1,6 +1,6 @@
 /**
  * `pnpm seed`: creates the demo customer in the real Nessie API and writes the
- * ids to .seed.json, which the relay reads at startup.
+ * ids to .seed.json. Copy the printed account id into NESSIE_ACCOUNT_ID.
  *
  *   Margaret Hale, with a checking account that shows $8,400
  *   a landlord (Oakwood Apartments) with its own account, as a trusted payee
@@ -46,8 +46,8 @@ function readEnv(): Record<string, string> {
 }
 
 const env = readEnv();
-const KEY = (env.NESSIE_KEY ?? "").trim();
-const BASE = (env.NESSIE_BASE || "https://prod-api.nessieisreal.com").replace(/\/+$/, "");
+const KEY = (env.NESSIE_API_KEY ?? "").trim();
+const BASE = (env.NESSIE_BASE_URL || "https://prod-api.nessieisreal.com").replace(/\/+$/, "");
 
 const day = (offset: number): string => new Date(Date.now() + offset * DAY_MS).toISOString().slice(0, 10);
 
@@ -100,7 +100,7 @@ async function customer(firstName: string, lastName: string, address: Record<str
 
 async function main(): Promise<void> {
   if (!KEY) {
-    console.error("NESSIE_KEY is not set. Add it to .env (get a key at https://nessieisreal.com).");
+    console.error("NESSIE_API_KEY is not set");
     process.exit(1);
   }
   if (existsSync(SEED_PATH)) {
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
     ],
   };
   writeFileSync(SEED_PATH, `${JSON.stringify(seed, null, 2)}\n`);
-  console.log("Wrote .seed.json. Run `pnpm dev` with MOCK=0 to use it.");
+  console.log(`Put NESSIE_ACCOUNT_ID=${accountId} in .env`);
 }
 
 main().catch((e: unknown) => {

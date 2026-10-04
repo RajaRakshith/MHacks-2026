@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
  * `pnpm dev`: starts a local SpacetimeDB if one is not running, publishes the
- * module, regenerates the client bindings, then starts the relay and the dashboard.
+ * live module, regenerates client and worker bindings, then starts the worker
+ * and the dashboard.
  *
  *   --publish-only   stop after publishing and generating bindings
  *   --reset          publish with --delete-data: wipes calls, holds, and mock transfers
@@ -34,7 +35,7 @@ function readEnv() {
 
 const env = { ...readEnv(), ...process.env };
 const uri = env.SPACETIME_URI || "ws://127.0.0.1:3000";
-const database = env.SPACETIME_DB || "scamshield";
+const database = env.SPACETIME_DATABASE || env.SPACETIME_DB || "scamshield-dev";
 const httpUrl = uri.replace(/^ws/, "http").replace(/\/+$/, "");
 const host = new URL(httpUrl);
 const isLocal = ["127.0.0.1", "localhost", "[::1]"].includes(host.hostname);
@@ -145,7 +146,7 @@ async function main() {
 
   // 2. Publish the module
   console.log(`[dev] Publishing the module to "${database}"${reset ? " (data reset)" : ""}`);
-  const publishArgs = ["publish", database, "--server", httpUrl, "--module-path", "spacetime", "--yes"];
+  const publishArgs = ["publish", database, "--server", httpUrl, "--module-path", "spacetimedb", "--yes"];
   if (reset) publishArgs.push("--delete-data=always");
   const published = run("spacetime", publishArgs);
   if (!published.ok) {
@@ -154,9 +155,14 @@ async function main() {
     return;
   }
 
-  // 3. Client bindings shared by web, relay, and button
-  const generated = run("spacetime", ["generate", "--lang", "typescript", "--out-dir", "packages/bindings/src", "--module-path", "spacetime", "--yes"]);
+  // 3. Client bindings for the dashboard, then worker bindings from the same module.
+  const generated = run("spacetime", ["generate", "--lang", "typescript", "--out-dir", "packages/bindings/src", "--module-path", "spacetimedb", "--no-config", "--yes"]);
   if (!generated.ok) {
+    shutdown(1);
+    return;
+  }
+  const workerBindings = run("spacetime", ["generate", "--lang", "typescript", "--out-dir", "worker/src/module_bindings", "--module-path", "spacetimedb", "--no-config", "--yes"]);
+  if (!workerBindings.ok) {
     shutdown(1);
     return;
   }
@@ -166,11 +172,7 @@ async function main() {
     return;
   }
 
-  // 4. Relay and dashboard. The relay connects as the module's owner so it can call set_secret.
-  const token = /auth token[^\n]*\bis\s+(\S+)/i.exec(run("spacetime", ["login", "show", "--token"], { quiet: true }).output)?.[1];
-  const mock = env.MOCK === undefined || env.MOCK === "" || /^(1|true|yes|on)$/i.test(env.MOCK);
-  console.log(`[dev] Mode: ${mock ? "MOCK (fixtures only, no API keys needed)" : "LIVE"}`);
-
+  // 4. Worker and dashboard.
   if (lan) {
     const addresses = Object.values(networkInterfaces())
       .flat()
@@ -180,7 +182,7 @@ async function main() {
     console.log("[dev] Start the phone app in another terminal with `pnpm mobile`.");
   }
 
-  start("relay", "pnpm", ["--filter", "@scamshield/relay", "dev"], token ? { SPACETIME_TOKEN: token } : {});
+  start("worker", "npm", ["run", "worker:dev"]);
   start("web", "pnpm", ["--filter", "@scamshield/web", "dev"], { VITE_SPACETIME_URI: uri, VITE_SPACETIME_DB: database });
 }
 

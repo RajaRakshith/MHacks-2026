@@ -6,6 +6,10 @@
     {
       "language": "typescript",
       "out-dir": "worker/src/module_bindings"
+    },
+    {
+      "language": "typescript",
+      "out-dir": "packages/bindings/src"
     }
   ],
   "dev": {
