@@ -16,4 +16,5 @@ export default __t.row({
   nickname: __t.string(),
   last4: __t.string().name("last_4"),
   balance: __t.f64(),
+  updatedAt: __t.timestamp().name("updated_at"),
 });

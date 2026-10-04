@@ -43,13 +43,20 @@ import RequestTransferReducer from "./request_transfer_reducer";
 import CompleteTransferReducer from "./complete_transfer_reducer";
 import FailTransferReducer from "./fail_transfer_reducer";
 import ReleaseHeldTransferReducer from "./release_held_transfer_reducer";
+import ExpireHeldTransferReducer from "./expire_held_transfer_reducer";
+import UpsertAccountSnapshotReducer from "./upsert_account_snapshot_reducer";
+import ReplaceActivityReducer from "./replace_activity_reducer";
+import UpsertPayeeReducer from "./upsert_payee_reducer";
 import SetRiskHoldThresholdReducer from "./set_risk_hold_threshold_reducer";
 
 // Import all procedure arg schemas
 
 // Import all table schema definitions
+import AccountSnapshotRow from "./account_snapshot_table";
+import ActivityRow from "./activity_table";
 import CallSessionsRow from "./call_sessions_table";
 import ConfigRow from "./config_table";
+import PayeesRow from "./payees_table";
 import RiskEventsRow from "./risk_events_table";
 import TranscriptSegmentsRow from "./transcript_segments_table";
 import TransferIntentsRow from "./transfer_intents_table";
@@ -58,6 +65,28 @@ import TransferIntentsRow from "./transfer_intents_table";
 
 /** The schema information for all tables in this module. This is defined the same was as the tables would have been defined in the server. */
 const tablesSchema = __schema({
+  accountSnapshot: __table({
+    name: 'account_snapshot',
+    indexes: [
+      { accessor: 'id', name: 'account_snapshot_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'account_snapshot_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, AccountSnapshotRow),
+  activity: __table({
+    name: 'activity',
+    indexes: [
+      { accessor: 'id', name: 'activity_id_idx_btree', algorithm: 'btree', columns: [
+        'id',
+      ] },
+    ],
+    constraints: [
+      { name: 'activity_id_key', constraint: 'unique', columns: ['id'] },
+    ],
+  }, ActivityRow),
   callSessions: __table({
     name: 'call_sessions',
     indexes: [
@@ -87,6 +116,17 @@ const tablesSchema = __schema({
       { name: 'config_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ConfigRow),
+  payees: __table({
+    name: 'payees',
+    indexes: [
+      { accessor: 'name', name: 'payees_name_idx_btree', algorithm: 'btree', columns: [
+        'name',
+      ] },
+    ],
+    constraints: [
+      { name: 'payees_name_key', constraint: 'unique', columns: ['name'] },
+    ],
+  }, PayeesRow),
   riskEvents: __table({
     name: 'risk_events',
     indexes: [
@@ -148,6 +188,10 @@ const reducersSchema = __reducers(
   __reducerSchema("complete_transfer", CompleteTransferReducer),
   __reducerSchema("fail_transfer", FailTransferReducer),
   __reducerSchema("release_held_transfer", ReleaseHeldTransferReducer),
+  __reducerSchema("expire_held_transfer", ExpireHeldTransferReducer),
+  __reducerSchema("upsert_account_snapshot", UpsertAccountSnapshotReducer),
+  __reducerSchema("replace_activity", ReplaceActivityReducer),
+  __reducerSchema("upsert_payee", UpsertPayeeReducer),
   __reducerSchema("set_risk_hold_threshold", SetRiskHoldThresholdReducer),
 );
 
@@ -157,6 +201,8 @@ const proceduresSchema = __procedures(
 
 type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
   tables: typeof tablesSchema.schemaType.tables & {
+    /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+    readonly "account_snapshot": Omit<typeof tablesSchema.schemaType.tables["accountSnapshot"], "accessorName"> & { readonly accessorName: "account_snapshot" };
     /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
     readonly "call_sessions": Omit<typeof tablesSchema.schemaType.tables["callSessions"], "accessorName"> & { readonly accessorName: "call_sessions" };
     /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */
@@ -183,6 +229,7 @@ const REMOTE_MODULE = {
 >;
 
 const tableAccessorAliases = {
+  "account_snapshot": "accountSnapshot",
   "call_sessions": "callSessions",
   "risk_events": "riskEvents",
   "transcript_segments": "transcriptSegments",
@@ -207,6 +254,8 @@ function __withTableAccessorAliases<T extends object>(target: T, freeze = false)
 
 type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
 export type DbView = __DbViewBase & {
+  /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+  readonly "account_snapshot": __DbViewBase["accountSnapshot"];
   /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
   readonly "call_sessions": __DbViewBase["callSessions"];
   /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */
@@ -219,6 +268,8 @@ export type DbView = __DbViewBase & {
 
 type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
 export type Tables = __TablesBase & {
+  /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+  readonly "account_snapshot": __TablesBase["accountSnapshot"];
   /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
   readonly "call_sessions": __TablesBase["callSessions"];
   /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */

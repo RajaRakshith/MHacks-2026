@@ -11,5 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  holdId: __t.u64(),
+  intentId: __t.u64(),
+  reason: __t.string(),
 };

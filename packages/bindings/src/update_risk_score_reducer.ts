@@ -11,9 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  callId: __t.u64(),
-  speaker: __t.string(),
-  text: __t.string(),
-  atMs: __t.u32(),
-  labelsJson: __t.option(__t.string()),
+  sessionId: __t.u64(),
+  riskScore: __t.u8(),
 };

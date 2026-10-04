@@ -11,5 +11,5 @@ import {
 } from "spacetimedb";
 
 export default {
-  callId: __t.u64(),
+  intentId: __t.u64(),
 };

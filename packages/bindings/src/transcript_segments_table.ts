@@ -11,8 +11,11 @@ import {
 } from "spacetimedb";
 
 export default __t.row({
-  name: __t.string().primaryKey(),
-  nessieAccountId: __t.string().name("nessie_account_id"),
-  trusted: __t.bool(),
-  timesPaid: __t.u32().name("times_paid"),
+  id: __t.u64().primaryKey(),
+  sessionId: __t.u64().name("session_id"),
+  userId: __t.string().name("user_id"),
+  occurredAt: __t.timestamp().name("occurred_at"),
+  text: __t.string(),
+  source: __t.string(),
+  isFinal: __t.bool().name("is_final"),
 });

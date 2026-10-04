@@ -10,13 +10,7 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  id: __t.u64().primaryKey(),
-  payee: __t.string(),
-  amount: __t.f64(),
-  memo: __t.string(),
-  reason: __t.string(),
-  status: __t.string(),
-  createdAt: __t.timestamp().name("created_at"),
-  expiresAt: __t.timestamp().name("expires_at"),
-});
+export default {
+  intentId: __t.u64(),
+  force: __t.bool(),
+};

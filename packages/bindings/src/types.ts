@@ -16,6 +16,7 @@ export const AccountSnapshot = __t.object("AccountSnapshot", {
   nickname: __t.string(),
   last4: __t.string(),
   balance: __t.f64(),
+  updatedAt: __t.timestamp(),
 });
 export type AccountSnapshot = __Infer<typeof AccountSnapshot>;
 
@@ -29,135 +30,101 @@ export const Activity = __t.object("Activity", {
 });
 export type Activity = __Infer<typeof Activity>;
 
-export const Alert = __t.object("Alert", {
-  id: __t.u64(),
-  callId: __t.u64(),
-  kind: __t.string(),
-  message: __t.string(),
-  createdAt: __t.timestamp(),
-});
-export type Alert = __Infer<typeof Alert>;
-
-export const AnalyzeResult = __t.object("AnalyzeResult", {
-  ok: __t.bool(),
-  score: __t.u32(),
-  state: __t.string(),
-  message: __t.string(),
-});
-export type AnalyzeResult = __Infer<typeof AnalyzeResult>;
-
-export const Bill = __t.object("Bill", {
+export const ActivityRow = __t.object("ActivityRow", {
   id: __t.string(),
-  payee: __t.string(),
-  amount: __t.f64(),
-  paymentDate: __t.string(),
-  status: __t.string(),
-});
-export type Bill = __Infer<typeof Bill>;
-
-export const Call = __t.object("Call", {
-  id: __t.u64(),
-  callerNumber: __t.string(),
-  startedAt: __t.timestamp(),
-  endedAt: __t.option(__t.timestamp()),
-  score: __t.u32(),
-  state: __t.string(),
-});
-export type Call = __Infer<typeof Call>;
-
-export const Config = __t.object("Config", {
-  id: __t.u8(),
-  mock: __t.bool(),
-  accountId: __t.string(),
-  supportsPurchases: __t.bool(),
-  supportsTransfers: __t.bool(),
-});
-export type Config = __Infer<typeof Config>;
-
-export const Guard = __t.object("Guard", {
-  id: __t.u8(),
-  armedUntil: __t.timestamp(),
-});
-export type Guard = __Infer<typeof Guard>;
-
-export const Hold = __t.object("Hold", {
-  id: __t.u64(),
-  payee: __t.string(),
-  amount: __t.f64(),
-  memo: __t.string(),
-  reason: __t.string(),
-  status: __t.string(),
-  createdAt: __t.timestamp(),
-  expiresAt: __t.timestamp(),
-});
-export type Hold = __Infer<typeof Hold>;
-
-export const MockTxn = __t.object("MockTxn", {
-  id: __t.u64(),
   kind: __t.string(),
   date: __t.string(),
   description: __t.string(),
   amount: __t.f64(),
+  sortIndex: __t.u32(),
 });
-export type MockTxn = __Infer<typeof MockTxn>;
+export type ActivityRow = __Infer<typeof ActivityRow>;
 
-export const Payee = __t.object("Payee", {
+// The tagged union or sum type for the algebraic type `CallSessionStatus`.
+export const CallSessionStatus = __t.enum("CallSessionStatus", {
+  Active: __t.unit(),
+  Ended: __t.unit(),
+});
+export type CallSessionStatus = __Infer<typeof CallSessionStatus>;
+
+export const CallSessions = __t.object("CallSessions", {
+  id: __t.u64(),
+  userId: __t.string(),
+  startedAt: __t.timestamp(),
+  endedAt: __t.option(__t.timestamp()),
+  riskScore: __t.u8(),
+  get status() {
+    return CallSessionStatus;
+  },
+  callerNumber: __t.option(__t.string()),
+  twilioCallSid: __t.option(__t.string()),
+});
+export type CallSessions = __Infer<typeof CallSessions>;
+
+export const Config = __t.object("Config", {
+  id: __t.u8(),
+  riskHoldThreshold: __t.u8(),
+});
+export type Config = __Infer<typeof Config>;
+
+export const Payees = __t.object("Payees", {
   name: __t.string(),
   nessieAccountId: __t.string(),
   trusted: __t.bool(),
-  timesPaid: __t.u32(),
 });
-export type Payee = __Infer<typeof Payee>;
+export type Payees = __Infer<typeof Payees>;
 
-export const RefreshResult = __t.object("RefreshResult", {
-  ok: __t.bool(),
-  message: __t.string(),
-});
-export type RefreshResult = __Infer<typeof RefreshResult>;
-
-export const ReportedNumber = __t.object("ReportedNumber", {
-  number: __t.string(),
-  reports: __t.u32(),
-});
-export type ReportedNumber = __Infer<typeof ReportedNumber>;
-
-export const Secret = __t.object("Secret", {
-  name: __t.string(),
-  value: __t.string(),
-});
-export type Secret = __Infer<typeof Secret>;
-
-export const TacticHit = __t.object("TacticHit", {
+export const RiskEvents = __t.object("RiskEvents", {
   id: __t.u64(),
-  callId: __t.u64(),
-  tactic: __t.string(),
+  sessionId: __t.u64(),
+  userId: __t.string(),
+  occurredAt: __t.timestamp(),
+  signalType: __t.string(),
+  transcriptExcerpt: __t.string(),
+  riskScoreAfter: __t.u8(),
+  warningMessage: __t.option(__t.string()),
 });
-export type TacticHit = __Infer<typeof TacticHit>;
+export type RiskEvents = __Infer<typeof RiskEvents>;
 
-export const Transcript = __t.object("Transcript", {
+export const TranscriptSegments = __t.object("TranscriptSegments", {
   id: __t.u64(),
-  callId: __t.u64(),
-  atMs: __t.u32(),
-  speaker: __t.string(),
+  sessionId: __t.u64(),
+  userId: __t.string(),
+  occurredAt: __t.timestamp(),
   text: __t.string(),
-  labelsJson: __t.option(__t.string()),
+  source: __t.string(),
+  isFinal: __t.bool(),
 });
-export type Transcript = __Infer<typeof Transcript>;
+export type TranscriptSegments = __Infer<typeof TranscriptSegments>;
 
-export const TransferResult = __t.object("TransferResult", {
-  outcome: __t.string(),
-  message: __t.string(),
-  rule: __t.u32(),
-  viaWithdrawal: __t.bool(),
+// The tagged union or sum type for the algebraic type `TransferIntentStatus`.
+export const TransferIntentStatus = __t.enum("TransferIntentStatus", {
+  Pending: __t.unit(),
+  Approved: __t.unit(),
+  Held: __t.unit(),
+  Completed: __t.unit(),
+  Failed: __t.unit(),
+  Released: __t.unit(),
+  Expired: __t.unit(),
 });
-export type TransferResult = __Infer<typeof TransferResult>;
+export type TransferIntentStatus = __Infer<typeof TransferIntentStatus>;
 
-export const Verdict = __t.object("Verdict", {
+export const TransferIntents = __t.object("TransferIntents", {
   id: __t.u64(),
-  callId: __t.u64(),
-  claimJson: __t.string(),
-  claimTrue: __t.bool(),
-  evidence: __t.string(),
+  userId: __t.string(),
+  sessionId: __t.option(__t.u64()),
+  requestedAt: __t.timestamp(),
+  amountCents: __t.u64(),
+  destinationAccount: __t.string(),
+  memo: __t.option(__t.string()),
+  get status() {
+    return TransferIntentStatus;
+  },
+  holdReason: __t.option(__t.string()),
+  riskScoreAtDecision: __t.u8(),
+  nessieTransferId: __t.option(__t.string()),
+  completedAt: __t.option(__t.timestamp()),
+  expiresAt: __t.option(__t.timestamp()),
 });
-export type Verdict = __Infer<typeof Verdict>;
+export type TransferIntents = __Infer<typeof TransferIntents>;
 

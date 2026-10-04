@@ -10,7 +10,12 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
+import {
+  ActivityRow,
+} from "./types";
+
 export default {
-  mock: __t.bool(),
-  accountId: __t.string(),
+  get rows() {
+    return __t.array(ActivityRow);
+  },
 };

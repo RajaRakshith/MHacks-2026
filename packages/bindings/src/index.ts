@@ -34,35 +34,32 @@ import {
 } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddTranscriptReducer from "./add_transcript_reducer";
-import ArmGuardReducer from "./arm_guard_reducer";
-import EndCallReducer from "./end_call_reducer";
-import RejectHoldReducer from "./reject_hold_reducer";
-import SeedPayeeReducer from "./seed_payee_reducer";
-import SetConfigReducer from "./set_config_reducer";
-import SetSecretReducer from "./set_secret_reducer";
-import StartCallReducer from "./start_call_reducer";
+import StartCallSessionReducer from "./start_call_session_reducer";
+import EndCallSessionReducer from "./end_call_session_reducer";
+import UpdateRiskScoreReducer from "./update_risk_score_reducer";
+import RecordRiskEventReducer from "./record_risk_event_reducer";
+import AppendTranscriptSegmentReducer from "./append_transcript_segment_reducer";
+import RequestTransferReducer from "./request_transfer_reducer";
+import CompleteTransferReducer from "./complete_transfer_reducer";
+import FailTransferReducer from "./fail_transfer_reducer";
+import ReleaseHeldTransferReducer from "./release_held_transfer_reducer";
+import ExpireHeldTransferReducer from "./expire_held_transfer_reducer";
+import UpsertAccountSnapshotReducer from "./upsert_account_snapshot_reducer";
+import ReplaceActivityReducer from "./replace_activity_reducer";
+import UpsertPayeeReducer from "./upsert_payee_reducer";
+import SetRiskHoldThresholdReducer from "./set_risk_hold_threshold_reducer";
 
 // Import all procedure arg schemas
-import * as AnalyzeCallProcedure from "./analyze_call_procedure";
-import * as ApproveHoldProcedure from "./approve_hold_procedure";
-import * as RefreshAccountProcedure from "./refresh_account_procedure";
-import * as RequestTransferProcedure from "./request_transfer_procedure";
 
 // Import all table schema definitions
 import AccountSnapshotRow from "./account_snapshot_table";
 import ActivityRow from "./activity_table";
-import AlertRow from "./alert_table";
-import BillRow from "./bill_table";
-import CallRow from "./call_table";
+import CallSessionsRow from "./call_sessions_table";
 import ConfigRow from "./config_table";
-import GuardRow from "./guard_table";
-import HoldRow from "./hold_table";
-import PayeeRow from "./payee_table";
-import ReportedNumberRow from "./reported_number_table";
-import TacticHitRow from "./tactic_hit_table";
-import TranscriptRow from "./transcript_table";
-import VerdictRow from "./verdict_table";
+import PayeesRow from "./payees_table";
+import RiskEventsRow from "./risk_events_table";
+import TranscriptSegmentsRow from "./transcript_segments_table";
+import TransferIntentsRow from "./transfer_intents_table";
 
 /** Type-only namespace exports for generated type groups. */
 
@@ -90,42 +87,24 @@ const tablesSchema = __schema({
       { name: 'activity_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ActivityRow),
-  alert: __table({
-    name: 'alert',
+  callSessions: __table({
+    name: 'call_sessions',
     indexes: [
-      { accessor: 'callId', name: 'alert_call_id_idx_btree', algorithm: 'btree', columns: [
-        'callId',
-      ] },
-      { accessor: 'id', name: 'alert_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'id', name: 'call_sessions_id_idx_btree', algorithm: 'btree', columns: [
         'id',
+      ] },
+      { accessor: 'userId', name: 'call_sessions_user_id_idx_btree', algorithm: 'btree', columns: [
+        'userId',
+      ] },
+      { accessor: 'byUserAndStatus', name: 'call_sessions_user_id_status_idx_btree', algorithm: 'btree', columns: [
+        'userId',
+        'status',
       ] },
     ],
     constraints: [
-      { name: 'alert_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'call_sessions_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, AlertRow),
-  bill: __table({
-    name: 'bill',
-    indexes: [
-      { accessor: 'id', name: 'bill_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-    ],
-    constraints: [
-      { name: 'bill_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, BillRow),
-  call: __table({
-    name: 'call',
-    indexes: [
-      { accessor: 'id', name: 'call_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-    ],
-    constraints: [
-      { name: 'call_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, CallRow),
+  }, CallSessionsRow),
   config: __table({
     name: 'config',
     indexes: [
@@ -137,130 +116,173 @@ const tablesSchema = __schema({
       { name: 'config_id_key', constraint: 'unique', columns: ['id'] },
     ],
   }, ConfigRow),
-  guard: __table({
-    name: 'guard',
+  payees: __table({
+    name: 'payees',
     indexes: [
-      { accessor: 'id', name: 'guard_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-    ],
-    constraints: [
-      { name: 'guard_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, GuardRow),
-  hold: __table({
-    name: 'hold',
-    indexes: [
-      { accessor: 'id', name: 'hold_id_idx_btree', algorithm: 'btree', columns: [
-        'id',
-      ] },
-    ],
-    constraints: [
-      { name: 'hold_id_key', constraint: 'unique', columns: ['id'] },
-    ],
-  }, HoldRow),
-  payee: __table({
-    name: 'payee',
-    indexes: [
-      { accessor: 'name', name: 'payee_name_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'name', name: 'payees_name_idx_btree', algorithm: 'btree', columns: [
         'name',
       ] },
     ],
     constraints: [
-      { name: 'payee_name_key', constraint: 'unique', columns: ['name'] },
+      { name: 'payees_name_key', constraint: 'unique', columns: ['name'] },
     ],
-  }, PayeeRow),
-  reportedNumber: __table({
-    name: 'reported_number',
+  }, PayeesRow),
+  riskEvents: __table({
+    name: 'risk_events',
     indexes: [
-      { accessor: 'number', name: 'reported_number_number_idx_btree', algorithm: 'btree', columns: [
-        'number',
-      ] },
-    ],
-    constraints: [
-      { name: 'reported_number_number_key', constraint: 'unique', columns: ['number'] },
-    ],
-  }, ReportedNumberRow),
-  tacticHit: __table({
-    name: 'tactic_hit',
-    indexes: [
-      { accessor: 'callId', name: 'tactic_hit_call_id_idx_btree', algorithm: 'btree', columns: [
-        'callId',
-      ] },
-      { accessor: 'id', name: 'tactic_hit_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'id', name: 'risk_events_id_idx_btree', algorithm: 'btree', columns: [
         'id',
       ] },
+      { accessor: 'bySession', name: 'risk_events_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
+      { accessor: 'byUser', name: 'risk_events_user_id_idx_btree', algorithm: 'btree', columns: [
+        'userId',
+      ] },
     ],
     constraints: [
-      { name: 'tactic_hit_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'risk_events_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, TacticHitRow),
-  transcript: __table({
-    name: 'transcript',
+  }, RiskEventsRow),
+  transcriptSegments: __table({
+    name: 'transcript_segments',
     indexes: [
-      { accessor: 'callId', name: 'transcript_call_id_idx_btree', algorithm: 'btree', columns: [
-        'callId',
-      ] },
-      { accessor: 'id', name: 'transcript_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'id', name: 'transcript_segments_id_idx_btree', algorithm: 'btree', columns: [
         'id',
       ] },
+      { accessor: 'bySession', name: 'transcript_segments_session_id_idx_btree', algorithm: 'btree', columns: [
+        'sessionId',
+      ] },
     ],
     constraints: [
-      { name: 'transcript_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'transcript_segments_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, TranscriptRow),
-  verdict: __table({
-    name: 'verdict',
+  }, TranscriptSegmentsRow),
+  transferIntents: __table({
+    name: 'transfer_intents',
     indexes: [
-      { accessor: 'callId', name: 'verdict_call_id_idx_btree', algorithm: 'btree', columns: [
-        'callId',
-      ] },
-      { accessor: 'id', name: 'verdict_id_idx_btree', algorithm: 'btree', columns: [
+      { accessor: 'id', name: 'transfer_intents_id_idx_btree', algorithm: 'btree', columns: [
         'id',
       ] },
+      { accessor: 'byStatus', name: 'transfer_intents_status_idx_btree', algorithm: 'btree', columns: [
+        'status',
+      ] },
+      { accessor: 'byUser', name: 'transfer_intents_user_id_idx_btree', algorithm: 'btree', columns: [
+        'userId',
+      ] },
     ],
     constraints: [
-      { name: 'verdict_id_key', constraint: 'unique', columns: ['id'] },
+      { name: 'transfer_intents_id_key', constraint: 'unique', columns: ['id'] },
     ],
-  }, VerdictRow),
+  }, TransferIntentsRow),
 });
 
 /** The schema information for all reducers in this module. This is defined the same way as the reducers would have been defined in the server, except the body of the reducer is omitted in code generation. */
 const reducersSchema = __reducers(
-  __reducerSchema("add_transcript", AddTranscriptReducer),
-  __reducerSchema("arm_guard", ArmGuardReducer),
-  __reducerSchema("end_call", EndCallReducer),
-  __reducerSchema("reject_hold", RejectHoldReducer),
-  __reducerSchema("seed_payee", SeedPayeeReducer),
-  __reducerSchema("set_config", SetConfigReducer),
-  __reducerSchema("set_secret", SetSecretReducer),
-  __reducerSchema("start_call", StartCallReducer),
+  __reducerSchema("start_call_session", StartCallSessionReducer),
+  __reducerSchema("end_call_session", EndCallSessionReducer),
+  __reducerSchema("update_risk_score", UpdateRiskScoreReducer),
+  __reducerSchema("record_risk_event", RecordRiskEventReducer),
+  __reducerSchema("append_transcript_segment", AppendTranscriptSegmentReducer),
+  __reducerSchema("request_transfer", RequestTransferReducer),
+  __reducerSchema("complete_transfer", CompleteTransferReducer),
+  __reducerSchema("fail_transfer", FailTransferReducer),
+  __reducerSchema("release_held_transfer", ReleaseHeldTransferReducer),
+  __reducerSchema("expire_held_transfer", ExpireHeldTransferReducer),
+  __reducerSchema("upsert_account_snapshot", UpsertAccountSnapshotReducer),
+  __reducerSchema("replace_activity", ReplaceActivityReducer),
+  __reducerSchema("upsert_payee", UpsertPayeeReducer),
+  __reducerSchema("set_risk_hold_threshold", SetRiskHoldThresholdReducer),
 );
 
 /** The schema information for all procedures in this module. This is defined the same way as the procedures would have been defined in the server. */
 const proceduresSchema = __procedures(
-  __procedureSchema("analyze_call", AnalyzeCallProcedure.params, AnalyzeCallProcedure.returnType),
-  __procedureSchema("approve_hold", ApproveHoldProcedure.params, ApproveHoldProcedure.returnType),
-  __procedureSchema("refresh_account", RefreshAccountProcedure.params, RefreshAccountProcedure.returnType),
-  __procedureSchema("request_transfer", RequestTransferProcedure.params, RequestTransferProcedure.returnType),
 );
+
+type __SchemaWithTableAccessorAliases = Omit<typeof tablesSchema.schemaType, "tables"> & {
+  tables: typeof tablesSchema.schemaType.tables & {
+    /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+    readonly "account_snapshot": Omit<typeof tablesSchema.schemaType.tables["accountSnapshot"], "accessorName"> & { readonly accessorName: "account_snapshot" };
+    /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
+    readonly "call_sessions": Omit<typeof tablesSchema.schemaType.tables["callSessions"], "accessorName"> & { readonly accessorName: "call_sessions" };
+    /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */
+    readonly "risk_events": Omit<typeof tablesSchema.schemaType.tables["riskEvents"], "accessorName"> & { readonly accessorName: "risk_events" };
+    /** @deprecated Use `transcriptSegments` instead. This alias will be removed in the next major version. */
+    readonly "transcript_segments": Omit<typeof tablesSchema.schemaType.tables["transcriptSegments"], "accessorName"> & { readonly accessorName: "transcript_segments" };
+    /** @deprecated Use `transferIntents` instead. This alias will be removed in the next major version. */
+    readonly "transfer_intents": Omit<typeof tablesSchema.schemaType.tables["transferIntents"], "accessorName"> & { readonly accessorName: "transfer_intents" };
+  };
+};
 
 /** The remote SpacetimeDB module schema, both runtime and type information. */
 const REMOTE_MODULE = {
   versionInfo: {
     cliVersion: "2.10.2" as const,
   },
-  tables: tablesSchema.schemaType.tables,
+  tables: tablesSchema.schemaType.tables as __SchemaWithTableAccessorAliases["tables"],
   reducers: reducersSchema.reducersType.reducers,
   ...proceduresSchema,
 } satisfies __RemoteModule<
-  typeof tablesSchema.schemaType,
+  __SchemaWithTableAccessorAliases,
   typeof reducersSchema.reducersType,
   typeof proceduresSchema
 >;
 
+const tableAccessorAliases = {
+  "account_snapshot": "accountSnapshot",
+  "call_sessions": "callSessions",
+  "risk_events": "riskEvents",
+  "transcript_segments": "transcriptSegments",
+  "transfer_intents": "transferIntents",
+} as const;
+
+function __withTableAccessorAliases<T extends object>(target: T, freeze = false): T {
+  const out = Object.create(Object.getPrototypeOf(target)) as T & Record<string, unknown>;
+  Object.defineProperties(out, Object.getOwnPropertyDescriptors(target));
+  for (const [deprecatedAccessor, targetAccessor] of Object.entries(tableAccessorAliases)) {
+    if (deprecatedAccessor in out) {
+      continue;
+    }
+    Object.defineProperty(out, deprecatedAccessor, {
+      enumerable: true,
+      configurable: false,
+      get: () => out[targetAccessor],
+    });
+  }
+  return freeze ? Object.freeze(out) : out;
+}
+
+type __DbViewBase = __DbConnectionImpl<typeof REMOTE_MODULE>["db"];
+export type DbView = __DbViewBase & {
+  /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+  readonly "account_snapshot": __DbViewBase["accountSnapshot"];
+  /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
+  readonly "call_sessions": __DbViewBase["callSessions"];
+  /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */
+  readonly "risk_events": __DbViewBase["riskEvents"];
+  /** @deprecated Use `transcriptSegments` instead. This alias will be removed in the next major version. */
+  readonly "transcript_segments": __DbViewBase["transcriptSegments"];
+  /** @deprecated Use `transferIntents` instead. This alias will be removed in the next major version. */
+  readonly "transfer_intents": __DbViewBase["transferIntents"];
+};
+
+type __TablesBase = __QueryBuilder<typeof tablesSchema.schemaType>;
+export type Tables = __TablesBase & {
+  /** @deprecated Use `accountSnapshot` instead. This alias will be removed in the next major version. */
+  readonly "account_snapshot": __TablesBase["accountSnapshot"];
+  /** @deprecated Use `callSessions` instead. This alias will be removed in the next major version. */
+  readonly "call_sessions": __TablesBase["callSessions"];
+  /** @deprecated Use `riskEvents` instead. This alias will be removed in the next major version. */
+  readonly "risk_events": __TablesBase["riskEvents"];
+  /** @deprecated Use `transcriptSegments` instead. This alias will be removed in the next major version. */
+  readonly "transcript_segments": __TablesBase["transcriptSegments"];
+  /** @deprecated Use `transferIntents` instead. This alias will be removed in the next major version. */
+  readonly "transfer_intents": __TablesBase["transferIntents"];
+};
+
 /** The tables available in this remote SpacetimeDB module. Each table reference doubles as a query builder. */
-export const tables: __QueryBuilder<typeof tablesSchema.schemaType> = __makeQueryBuilder(tablesSchema.schemaType);
+const tablesBase: __TablesBase = __makeQueryBuilder(tablesSchema.schemaType);
+export const tables: Tables = __withTableAccessorAliases(tablesBase, true) as Tables;
 
 /** The reducers available in this remote SpacetimeDB module. */
 export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reducers);
@@ -269,13 +291,13 @@ export const reducers = __convertToAccessorMap(reducersSchema.reducersType.reduc
 export const procedures = __convertToAccessorMap(proceduresSchema.procedures);
 
 /** The context type returned in callbacks for all possible events. */
-export type EventContext = __EventContextInterface<typeof REMOTE_MODULE>;
+export type EventContext = Omit<__EventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for reducer events. */
-export type ReducerEventContext = __ReducerEventContextInterface<typeof REMOTE_MODULE>;
+export type ReducerEventContext = Omit<__ReducerEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for subscription events. */
-export type SubscriptionEventContext = __SubscriptionEventContextInterface<typeof REMOTE_MODULE>;
+export type SubscriptionEventContext = Omit<__SubscriptionEventContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The context type returned in callbacks for error events. */
-export type ErrorContext = __ErrorContextInterface<typeof REMOTE_MODULE>;
+export type ErrorContext = Omit<__ErrorContextInterface<typeof REMOTE_MODULE>, "db"> & { db: DbView };
 /** The subscription handle type to manage active subscriptions created from a {@link SubscriptionBuilder}. */
 export type SubscriptionHandle = __SubscriptionHandleImpl<typeof REMOTE_MODULE>;
 
@@ -287,6 +309,13 @@ export class DbConnectionBuilder extends __DbConnectionBuilder<DbConnection> {}
 
 /** The typed database connection to manage connections to the remote SpacetimeDB instance. This class has type information specific to the generated module. */
 export class DbConnection extends __DbConnectionImpl<typeof REMOTE_MODULE> {
+  declare db: DbView;
+
+  constructor(config: __DbConnectionConfig<typeof REMOTE_MODULE>) {
+    super(config);
+    this.db = __withTableAccessorAliases(this.db) as DbView;
+  }
+
   /** Creates a new {@link DbConnectionBuilder} to configure and connect to the remote SpacetimeDB instance. */
   static builder = (): DbConnectionBuilder => {
     return new DbConnectionBuilder(REMOTE_MODULE, (config: __DbConnectionConfig<typeof REMOTE_MODULE>) => new DbConnection(config));

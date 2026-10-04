@@ -6,21 +6,33 @@
 import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddTranscriptReducer from "../add_transcript_reducer";
-import ArmGuardReducer from "../arm_guard_reducer";
-import EndCallReducer from "../end_call_reducer";
-import RejectHoldReducer from "../reject_hold_reducer";
-import SeedPayeeReducer from "../seed_payee_reducer";
-import SetConfigReducer from "../set_config_reducer";
-import SetSecretReducer from "../set_secret_reducer";
-import StartCallReducer from "../start_call_reducer";
+import StartCallSessionReducer from "../start_call_session_reducer";
+import EndCallSessionReducer from "../end_call_session_reducer";
+import UpdateRiskScoreReducer from "../update_risk_score_reducer";
+import RecordRiskEventReducer from "../record_risk_event_reducer";
+import AppendTranscriptSegmentReducer from "../append_transcript_segment_reducer";
+import RequestTransferReducer from "../request_transfer_reducer";
+import CompleteTransferReducer from "../complete_transfer_reducer";
+import FailTransferReducer from "../fail_transfer_reducer";
+import ReleaseHeldTransferReducer from "../release_held_transfer_reducer";
+import ExpireHeldTransferReducer from "../expire_held_transfer_reducer";
+import UpsertAccountSnapshotReducer from "../upsert_account_snapshot_reducer";
+import ReplaceActivityReducer from "../replace_activity_reducer";
+import UpsertPayeeReducer from "../upsert_payee_reducer";
+import SetRiskHoldThresholdReducer from "../set_risk_hold_threshold_reducer";
 
-export type AddTranscriptParams = __Infer<typeof AddTranscriptReducer>;
-export type ArmGuardParams = __Infer<typeof ArmGuardReducer>;
-export type EndCallParams = __Infer<typeof EndCallReducer>;
-export type RejectHoldParams = __Infer<typeof RejectHoldReducer>;
-export type SeedPayeeParams = __Infer<typeof SeedPayeeReducer>;
-export type SetConfigParams = __Infer<typeof SetConfigReducer>;
-export type SetSecretParams = __Infer<typeof SetSecretReducer>;
-export type StartCallParams = __Infer<typeof StartCallReducer>;
+export type StartCallSessionParams = __Infer<typeof StartCallSessionReducer>;
+export type EndCallSessionParams = __Infer<typeof EndCallSessionReducer>;
+export type UpdateRiskScoreParams = __Infer<typeof UpdateRiskScoreReducer>;
+export type RecordRiskEventParams = __Infer<typeof RecordRiskEventReducer>;
+export type AppendTranscriptSegmentParams = __Infer<typeof AppendTranscriptSegmentReducer>;
+export type RequestTransferParams = __Infer<typeof RequestTransferReducer>;
+export type CompleteTransferParams = __Infer<typeof CompleteTransferReducer>;
+export type FailTransferParams = __Infer<typeof FailTransferReducer>;
+export type ReleaseHeldTransferParams = __Infer<typeof ReleaseHeldTransferReducer>;
+export type ExpireHeldTransferParams = __Infer<typeof ExpireHeldTransferReducer>;
+export type UpsertAccountSnapshotParams = __Infer<typeof UpsertAccountSnapshotReducer>;
+export type ReplaceActivityParams = __Infer<typeof ReplaceActivityReducer>;
+export type UpsertPayeeParams = __Infer<typeof UpsertPayeeReducer>;
+export type SetRiskHoldThresholdParams = __Infer<typeof SetRiskHoldThresholdReducer>;
 

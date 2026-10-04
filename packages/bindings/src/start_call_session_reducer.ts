@@ -10,11 +10,8 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  id: __t.u64().primaryKey(),
-  callId: __t.u64().name("call_id"),
-  atMs: __t.u32().name("at_ms"),
-  speaker: __t.string(),
-  text: __t.string(),
-  labelsJson: __t.option(__t.string()).name("labels_json"),
-});
+export default {
+  userId: __t.string(),
+  callerNumber: __t.option(__t.string()),
+  twilioCallSid: __t.option(__t.string()),
+};

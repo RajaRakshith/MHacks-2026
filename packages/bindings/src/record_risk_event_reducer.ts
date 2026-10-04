@@ -10,10 +10,10 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  id: __t.u64().primaryKey(),
-  callId: __t.u64().name("call_id"),
-  claimJson: __t.string().name("claim_json"),
-  claimTrue: __t.bool().name("claim_true"),
-  evidence: __t.string(),
-});
+export default {
+  sessionId: __t.u64(),
+  signalType: __t.string(),
+  transcriptExcerpt: __t.string(),
+  riskScoreAfter: __t.u8(),
+  warningMessage: __t.option(__t.string()),
+};

@@ -10,11 +10,8 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-import {
-  AnalyzeResult,
-} from "./types";
-
-export const params = {
-  callId: __t.u64(),
-};
-export const returnType = AnalyzeResult
+export default __t.row({
+  name: __t.string().primaryKey(),
+  nessieAccountId: __t.string().name("nessie_account_id"),
+  trusted: __t.bool(),
+});

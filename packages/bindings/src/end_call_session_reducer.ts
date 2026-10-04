@@ -10,11 +10,6 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-import {
-  TransferResult,
-} from "./types";
-
-export const params = {
-  holdId: __t.u64(),
+export default {
+  sessionId: __t.u64(),
 };
-export const returnType = TransferResult

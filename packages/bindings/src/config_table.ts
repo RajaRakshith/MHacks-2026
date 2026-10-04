@@ -12,8 +12,5 @@ import {
 
 export default __t.row({
   id: __t.u8().primaryKey(),
-  mock: __t.bool(),
-  accountId: __t.string().name("account_id"),
-  supportsPurchases: __t.bool().name("supports_purchases"),
-  supportsTransfers: __t.bool().name("supports_transfers"),
+  riskHoldThreshold: __t.u8().name("risk_hold_threshold"),
 });

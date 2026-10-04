@@ -10,10 +10,6 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  id: __t.string().primaryKey(),
-  payee: __t.string(),
-  amount: __t.f64(),
-  paymentDate: __t.string().name("payment_date"),
-  status: __t.string(),
-});
+export default {
+  threshold: __t.u8(),
+};

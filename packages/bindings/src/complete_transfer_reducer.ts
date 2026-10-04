@@ -11,5 +11,6 @@ import {
 } from "spacetimedb";
 
 export default {
-  callerNumber: __t.string(),
+  intentId: __t.u64(),
+  nessieTransferId: __t.string(),
 };

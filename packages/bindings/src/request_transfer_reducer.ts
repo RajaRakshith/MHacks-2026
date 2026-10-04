@@ -11,6 +11,8 @@ import {
 } from "spacetimedb";
 
 export default {
-  name: __t.string(),
-  value: __t.string(),
+  userId: __t.string(),
+  amountCents: __t.u64(),
+  destinationAccount: __t.string(),
+  memo: __t.option(__t.string()),
 };

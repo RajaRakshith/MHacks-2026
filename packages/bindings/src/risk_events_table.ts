@@ -12,8 +12,11 @@ import {
 
 export default __t.row({
   id: __t.u64().primaryKey(),
-  callId: __t.u64().name("call_id"),
-  kind: __t.string(),
-  message: __t.string(),
-  createdAt: __t.timestamp().name("created_at"),
+  sessionId: __t.u64().name("session_id"),
+  userId: __t.string().name("user_id"),
+  occurredAt: __t.timestamp().name("occurred_at"),
+  signalType: __t.string().name("signal_type"),
+  transcriptExcerpt: __t.string().name("transcript_excerpt"),
+  riskScoreAfter: __t.u8().name("risk_score_after"),
+  warningMessage: __t.option(__t.string()).name("warning_message"),
 });

@@ -10,7 +10,9 @@ import {
   type Infer as __Infer,
 } from "spacetimedb";
 
-export default __t.row({
-  id: __t.u8().primaryKey(),
-  armedUntil: __t.timestamp().name("armed_until"),
-});
+export default {
+  sessionId: __t.u64(),
+  text: __t.string(),
+  source: __t.string(),
+  isFinal: __t.bool(),
+};
