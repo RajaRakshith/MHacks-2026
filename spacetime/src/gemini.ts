@@ -84,6 +84,8 @@ export function analyzeWithGemini(
 
   const body = res.json as { candidates?: { content?: { parts?: { text?: string }[] } }[] } | undefined;
   const text = body?.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? '';
+  // Shown by `spacetime logs`. The transcript is already redacted, so no full card number can appear here.
+  console.info(`gemini raw (${model}) for "${lines[lines.length - 1]?.text ?? ''}": ${text}`);
   try {
     return { ok: true, output: parseAnalyzerOutput(JSON.parse(text)) };
   } catch {
