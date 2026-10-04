@@ -9,15 +9,28 @@ const score = (over: Partial<ScoreInput>): number => scoreCall({ ...base, ...ove
 
 describe("scoreCall: every row of the scoring table (section 3.2)", () => {
   const rows: [Tactic, number][] = [
-    ["unusual_payment", 25],
-    ["credential_request", 25],
-    ["remote_access", 20],
-    ["bank_impersonation", 15],
-    ["government_impersonation", 15],
-    ["secrecy", 15],
-    ["refund_overpayment", 15],
-    ["urgency", 10],
-    ["stay_on_line", 10],
+    ["clear_scam", 40],
+    ["unusual_payment", 30],
+    ["credential_request", 30],
+    ["safe_account", 30],
+    ["remote_access", 25],
+    ["legal_threat", 25],
+    ["family_emergency", 25],
+    ["prize_or_lottery", 25],
+    ["bank_impersonation", 20],
+    ["government_impersonation", 20],
+    ["tech_support", 20],
+    ["personal_info_request", 20],
+    ["investment_pitch", 20],
+    ["romance", 20],
+    ["job_or_advance_fee", 20],
+    ["secrecy", 20],
+    ["refund_overpayment", 20],
+    ["business_impersonation", 15],
+    ["utility_impersonation", 15],
+    ["urgency", 15],
+    ["stay_on_line", 15],
+    ["charity_appeal", 10],
   ];
 
   it.each(rows)("%s is worth +%i", (tactic, points) => {
@@ -35,8 +48,8 @@ describe("scoreCall: every row of the scoring table (section 3.2)", () => {
   });
 
   it("each claim proven true is -10", () => {
-    expect(score({ tactics: ["unusual_payment"], verdicts: [{ claimTrue: true }] })).toBe(15);
-    expect(score({ tactics: ["unusual_payment"], verdicts: [{ claimTrue: true }, { claimTrue: true }] })).toBe(5);
+    expect(score({ tactics: ["unusual_payment"], verdicts: [{ claimTrue: true }] })).toBe(20);
+    expect(score({ tactics: ["unusual_payment"], verdicts: [{ claimTrue: true }, { claimTrue: true }] })).toBe(10);
   });
 
   it("caller number in the reported-scams list is +20", () => {
@@ -48,14 +61,14 @@ describe("scoreCall: every row of the scoring table (section 3.2)", () => {
   });
 
   it("each tactic counts once per call", () => {
-    expect(score({ tactics: ["urgency", "urgency", "urgency"] })).toBe(10);
-    expect(score({ tactics: ["urgency", "secrecy", "urgency", "secrecy"] })).toBe(25);
+    expect(score({ tactics: ["urgency", "urgency", "urgency"] })).toBe(15);
+    expect(score({ tactics: ["urgency", "secrecy", "urgency", "secrecy"] })).toBe(35);
   });
 
   it("sums every signal", () => {
     expect(
       score({ tactics: ["bank_impersonation", "urgency"], verdicts: [{ claimTrue: false }, { claimTrue: true }], callerReported: true }),
-    ).toBe(15 + 10 + 30 - 10 + 20);
+    ).toBe(20 + 15 + 30 - 10 + 20);
   });
 });
 
@@ -101,5 +114,21 @@ describe("crossed", () => {
     expect(crossed(0, 100, SCAM_THRESHOLD)).toBe(true);
     expect(crossed(75, 60, SCAM_THRESHOLD)).toBe(false);
     expect(crossed(70, 90, SCAM_THRESHOLD)).toBe(false);
+  });
+});
+
+describe("better safe than sorry", () => {
+  it("one clear scam signal plus pressure reaches Caution", () => {
+    expect(stateForScore(score({ tactics: ["unusual_payment", "urgency"] }))).toBe("caution");
+    expect(stateForScore(score({ tactics: ["credential_request", "bank_impersonation"] }))).toBe("caution");
+  });
+
+  it("the analyzer's clear-scam verdict with any two tactics reaches Scam likely", () => {
+    expect(stateForScore(score({ tactics: ["clear_scam", "urgency", "legal_threat"] }))).toBe("scam_likely");
+    expect(stateForScore(score({ tactics: ["clear_scam", "unusual_payment"] }))).toBe("scam_likely");
+  });
+
+  it("an ordinary call still scores 0", () => {
+    expect(score({})).toBe(0);
   });
 });

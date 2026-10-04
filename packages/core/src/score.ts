@@ -1,16 +1,35 @@
 import type { ShieldState, Tactic } from "./types";
 
-/** Section 3.2. Each tactic counts once per call. */
+/**
+ * Points per tactic. Each counts once per call.
+ */
+// SPEC-QUESTION: section 3.2 has nine tactics worth 10 to 25. By request the
+// list is longer and the weights are higher, on the principle "better safe
+// than sorry": one clear scam signal plus any pressure should reach Caution,
+// and `clear_scam` (the analyzer's own overall verdict) carries the most.
 export const TACTIC_POINTS: Record<Tactic, number> = {
-  unusual_payment: 25,
-  credential_request: 25,
-  remote_access: 20,
-  bank_impersonation: 15,
-  government_impersonation: 15,
-  secrecy: 15,
-  refund_overpayment: 15,
-  urgency: 10,
-  stay_on_line: 10,
+  clear_scam: 40,
+  unusual_payment: 30,
+  credential_request: 30,
+  safe_account: 30,
+  remote_access: 25,
+  legal_threat: 25,
+  family_emergency: 25,
+  prize_or_lottery: 25,
+  bank_impersonation: 20,
+  government_impersonation: 20,
+  tech_support: 20,
+  personal_info_request: 20,
+  investment_pitch: 20,
+  romance: 20,
+  job_or_advance_fee: 20,
+  secrecy: 20,
+  refund_overpayment: 20,
+  business_impersonation: 15,
+  utility_impersonation: 15,
+  urgency: 15,
+  stay_on_line: 15,
+  charity_appeal: 10,
 };
 
 export const CLAIM_FALSE_POINTS = 30;
