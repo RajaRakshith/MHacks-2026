@@ -143,14 +143,18 @@ async function handleApprovedIntent(
 }
 
 function registerHandlers(conn: InstanceType<typeof DbConnection>) {
-  conn.db.transferIntent.onInsert((ctx, row) => {
+  conn.db.transferIntents.onInsert((ctx, row) => {
     syncHeldRow(row);
     void handleApprovedIntent(asWorkerContext(ctx), row);
   });
 
-  conn.db.transferIntent.onUpdate((ctx, _oldRow, row) => {
+  conn.db.transferIntents.onUpdate((ctx, _oldRow, row) => {
     syncHeldRow(row);
     void handleApprovedIntent(asWorkerContext(ctx), row);
+  });
+
+  conn.db.transferIntents.onDelete((_ctx, row) => {
+    heldRows.delete(row.id);
   });
 }
 
@@ -166,8 +170,8 @@ function connect() {
       startHoldExpiry(ctx);
 
       conn.subscriptionBuilder().subscribe([
-        tables.transferIntent.where(r => r.status.tag.eq('Approved')),
-        tables.transferIntent.where(r => r.status.tag.eq('Held')),
+        tables.transferIntents.where(r => r.status.eq('Approved')),
+        tables.transferIntents.where(r => r.status.eq('Held')),
       ]);
     })
     .onConnectError((_ctx, err) => {
