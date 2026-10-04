@@ -14,3 +14,4 @@ worker/src/module_bindings/*
 !worker/src/module_bindings/README.md
 spacetime.local.json
 spacetime.*.local.json
+.worktrees/
