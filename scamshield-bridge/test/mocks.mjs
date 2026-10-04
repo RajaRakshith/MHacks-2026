@@ -2,7 +2,7 @@
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 
-export function mockHttp(port, { chatScore = 88 } = {}) {
+export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
   const calls = [];
   const sessions = [];
   const server = http.createServer((req, res) => {
@@ -20,6 +20,15 @@ export function mockHttp(port, { chatScore = 88 } = {}) {
         res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
           score: chatScore, signals: ['impersonation', 'otp_request'], action: 'hold_transfers',
           warning: 'DO NOT SHARE THE CODE', evidence: 'read me the code' }) } }] }));
+      } else if (String(req.url).includes(':generateContent')) {
+        calls.push(['gemini', buf.toString()]);
+        if (geminiScore == null) { res.writeHead(503); return res.end('down'); }
+        res.end(JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify({
+            score: geminiScore, signals: ['impersonation', 'otp_request'], action: 'hold_transfers',
+            warning: 'DO NOT SHARE THE CODE', evidence: 'read me the code',
+          }) }] } }],
+        }));
       } else if (req.url.startsWith('/v1/text-to-speech/')) {
         calls.push(['tts', req.url]);
         res.end(Buffer.alloc(800, 0x7f)); // 0.1s of mu-law = 5 Twilio frames
