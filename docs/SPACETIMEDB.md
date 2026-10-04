@@ -7,7 +7,7 @@ SpacetimeDB is the **single source of truth** for live call state and transfer p
 ```
 ┌─────────────────┐     recordRiskEvent      ┌──────────────────────────────┐
 │  Risk Engine    │ ────────────────────────► │         SpacetimeDB          │
-│  (Gemini worker)│     updateRiskScore       │  call_sessions               │
+│  (Grok / bridge)│     updateRiskScore       │  call_sessions               │
 └─────────────────┘                           │  risk_events                 │
                                               │  transfer_intents            │
 ┌─────────────────┐     requestTransfer       │                              │
@@ -163,7 +163,7 @@ With the module published locally:
 # Start a call session
 spacetime call scamshield start_call_session '{"userId":"demo-user"}'
 
-# Escalate risk (simulating Gemini output)
+# Escalate risk (simulating Grok output)
 spacetime call scamshield record_risk_event '{
   "sessionId": 1,
   "signalType": "otp_request",
@@ -195,11 +195,11 @@ spacetime call scamshield release_held_transfer '{"intentId": 1, "force": false}
 
 ### Risk engine → SpacetimeDB
 
-After each Gemini scoring pass on a transcript chunk:
+After each Grok scoring pass on a transcript chunk:
 ```typescript
 connection.reducers.recordRiskEvent({
   sessionId,
-  signalType: 'otp_request',       // from structured Gemini output
+  signalType: 'otp_request',       // from structured Grok output
   transcriptExcerpt: chunk.text,
   riskScoreAfter: 94,
   warningMessage: 'DO NOT SHARE THE CODE',

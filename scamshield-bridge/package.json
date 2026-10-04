@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node test/grok.mjs && node test/elevenlabs.mjs && node test/failover.mjs"
+    "test": "node test/grok.mjs && node test/elevenlabs.mjs && node test/failover.mjs",
+    "test:tts": "node test/tts.mjs"
   },
   "keywords": [],
   "author": "",
@@ -18,5 +19,6 @@
   "type": "module",
   "engines": {
     "node": ">=20"
-  }
+  },
+  "private": true
 }

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/transfer-worker.ts",
+    "dev": "tsx watch --env-file-if-exists=../.env src/transfer-worker.ts",
     "start": "node dist/transfer-worker.js",
     "build": "tsc"
   },
@@ -15,5 +15,8 @@
     "@types/node": "^20.0.0",
     "tsx": "^4.19.0",
     "typescript": "~5.6.2"
+  },
+  "engines": {
+    "node": ">=22.9"
   }
 }

@@ -3,7 +3,7 @@
 
 export async function transcribeWav(wavBuffer) {
   const form = new FormData();
-  form.append('model_id', process.env.ELEVENLABS_STT_MODEL || 'scribe_v2');
+  form.append('model_id', process.env.ELEVENLABS_SCRIBE_MODEL || 'scribe_v2');
   form.append('file', new Blob([wavBuffer], { type: 'audio/wav' }), 'chunk.wav');
   form.append('language_code', process.env.ELEVENLABS_LANGUAGE || 'en');
   form.append('tag_audio_events', 'false');

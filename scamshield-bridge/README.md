@@ -1,51 +1,57 @@
-# ScamShield bridge
+# ScamShield bridge (call server)
 
-Local Node.js server: Twilio (call audio) → Grok Voice (live transcript + risk score) → SpacetimeDB (live state),
-with ElevenLabs as the redundancy if Grok goes down.
+Twilio (call audio) → Grok Voice (live transcript + risk score) → SpacetimeDB module in [`../spacetimedb`](../spacetimedb),
+with ElevenLabs as the redundancy if Grok goes down and ElevenLabs TTS for the spoken warning.
 
 ```
-                      ┌────────── primary ──────────┐
-Twilio ──POST /twilio/voice──▶ TwiML <Stream>       │
+Twilio ──POST /twilio/voice──▶ TwiML <Stream>
 Twilio ──wss /media-stream──▶ CallSession ──wss──▶ Grok Voice ── transcript + report_risk()
                                   │                                    │
                                   │ Grok fails (connect/error/drop)    ▼
-                                  └──▶ ElevenLabs Scribe ──▶ Grok text scoring ──▶ SpacetimeDB reducers
-                                        (failover)          (keyword heuristic      start_call / append_transcript
-                                                             if that's down too)    update_risk / end_call
+                                  └──▶ ElevenLabs Scribe ──▶ Grok text scoring ──▶ SpacetimeDB reducers (HTTP)
+                                        (failover)          (keyword heuristic      start_call_session
+                                                             if that's down too)    append_transcript_segment
+                                                                                    record_risk_event
+                                  risk ≥ TTS_WARNING_SCORE ──▶ ElevenLabs TTS ──▶   end_call_session
+                                  (once per call)              spoken into the call
 ```
-- Grok's audio is never sent back to Twilio, so it can't speak on the call.
-- Failover is per call and one-way: once a call switches to ElevenLabs it stays there. Transcript `seq` and the risk score carry over.
-- Risk always arrives in the same shape: `score 0-100, signals[], action (none|monitor|warn|hold_transfers), warning, evidence`.
+- `record_risk_event` sets `call_sessions.risk_score`, which `request_transfer` checks, so a high score here is what holds the transfer.
+- Grok's own audio is never sent back to Twilio. The only audio the bridge sends into the call is the one-time ElevenLabs TTS warning.
+- Failover is per call and one-way: once a call switches to ElevenLabs it stays there. The risk score carries over.
+- `start_call_session` doesn't return an id, so the bridge looks up the new `call_sessions` row by Twilio CallSid over the SQL endpoint.
 
-## Run locally (Windows)
+## Run
 
-1. Install Node 20+ (`winget install OpenJS.NodeJS.LTS`, then reopen the terminal; `node -v` to check).
-2. In this folder:
-   ```powershell
-   npm install
-   copy .env.example .env
-   notepad .env        # fill XAI_API_KEY, ELEVENLABS_API_KEY, SPACETIME_DB (+ SPACETIME_TOKEN if reducers check identity)
-   npm test            # mocked tests (Grok path, ElevenLabs path, failover), no keys needed
-   npm start           # http://localhost:8080   (npm run dev = auto-restart on edits)
-   ```
-   `http://localhost:8080/health` shows which keys are loaded and any live calls.
-3. Expose it to Twilio (Twilio can't reach localhost):
-   ```powershell
-   ngrok http 8080
-   ```
-4. In the Twilio console, set your number's **A call comes in** webhook to
-   `https://YOUR-NGROK-HOST/twilio/voice?userId=USER_ID` (HTTP POST). The server answers with TwiML that streams the call to `/media-stream`.
-5. Publish the SpacetimeDB module: put `spacetime-module/lib.rs` into your module's `src/lib.rs`, then
-   `spacetime publish --server maincloud <SPACETIME_DB>`.
+Config lives in the **repo-root** `.env` (copy `../.env.example`). A `scamshield-bridge/.env` is also read and takes precedence.
 
-Watch the terminal on a test call: `grok connected`, `#N [grok] transcript: ...`, `risk NN (grok-voice) [...]`.
+From the repo root:
+```powershell
+npm install
+npm run bridge:test   # mocked tests: Grok path, ElevenLabs path, failover, TTS warning (no keys needed)
+npm run bridge:dev    # http://localhost:8080, restarts on edits
+```
+`npm run test:tts --workspace=scamshield-bridge` synthesizes the warning with your real ElevenLabs key and writes `scam-warning.ulaw`.
+
+SpacetimeDB must be running with the module published (`spacetime start`, then `npm run spacetime:publish:local`); see the root README.
+Twilio webhook: `https://YOUR-NGROK-HOST/twilio/voice?userId=demo-user` (HTTP POST).
+
+| Endpoint | |
+|---|---|
+| `POST /twilio/voice` | Twilio voice webhook; returns TwiML streaming the call to `/media-stream` |
+| `WS /media-stream` | Twilio Media Stream |
+| `GET /health` | loaded keys, SpacetimeDB target, live calls (with their `call_sessions.id`) |
+| `POST /calls/:callSid/warn` | speak the TTS warning into a live call right now (demo/testing) |
+
+Watch the terminal on a test call: `grok connected`, `spacetime call_sessions.id=N`, `#N [grok] transcript: ...`, `risk NN (grok-voice) [...]`.
 To rehearse the failover, set `XAI_REALTIME_URL=ws://localhost:1` and you'll see `failing over to elevenlabs`.
 
 ## Files
-- `src/server.js` — HTTP routes (`/twilio/voice`, `/health`) + the `/media-stream` websocket
-- `src/callSession.js` — one per call: picks the engine, does failover, writes to SpacetimeDB in order
+- `src/server.js` — HTTP routes + the `/media-stream` websocket
+- `src/env.js` — loads `scamshield-bridge/.env` then the repo-root `.env`
+- `src/callSession.js` — one per call: picks the engine, does failover, writes to SpacetimeDB in order, triggers the TTS warning
 - `src/engines/grok.js` — Grok Voice realtime (prompt is `INSTRUCTIONS` at the top)
 - `src/engines/elevenlabs.js` — ElevenLabs Scribe, batched every `CHUNK_SECONDS`
 - `src/risk.js` — shared risk schema/scoring guide, Grok text scorer, keyword heuristic
-- `src/elevenlabs.js`, `src/audio.js`, `src/spacetime.js` — API clients and mu-law → WAV helpers
-- `spacetime-module/lib.rs` — tables + reducers
+- `src/spacetime.js` — reducer + SQL calls against the `spacetimedb/` module
+- `src/tts.js`, `src/integration.js` — ElevenLabs TTS → µ-law → Twilio stream
+- `src/elevenlabs.js`, `src/audio.js` — Scribe client and mu-law → WAV helpers

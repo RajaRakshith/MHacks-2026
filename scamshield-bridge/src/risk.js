@@ -54,7 +54,7 @@ async function scoreWithGrokText(transcript, prevScore) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${process.env.XAI_API_KEY}` },
     body: JSON.stringify({
-      model: process.env.XAI_TEXT_MODEL || 'grok-4-fast-non-reasoning',
+      model: process.env.XAI_TEXT_MODEL || process.env.XAI_CHAT_MODEL || 'grok-4-fast-non-reasoning',
       temperature: 0,
       messages: [
         { role: 'system', content: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nThe previous score was ${prevScore}.` },

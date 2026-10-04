@@ -4,6 +4,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 
 export function mockHttp(port, { chatScore = 88 } = {}) {
   const calls = [];
+  const sessions = [];
   const server = http.createServer((req, res) => {
     const body = [];
     req.on('data', (c) => body.push(c));
@@ -19,8 +20,20 @@ export function mockHttp(port, { chatScore = 88 } = {}) {
         res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({
           score: chatScore, signals: ['impersonation', 'otp_request'], action: 'hold_transfers',
           warning: 'DO NOT SHARE THE CODE', evidence: 'read me the code' }) } }] }));
+      } else if (req.url.startsWith('/v1/text-to-speech/')) {
+        calls.push(['tts', req.url]);
+        res.end(Buffer.alloc(800, 0x7f)); // 0.1s of mu-law = 5 Twilio frames
+      } else if (req.url.endsWith('/sql')) {
+        // Shaped like SpacetimeDB's SQL response for call_sessions (snake_case columns, SATS-JSON options/enums).
+        calls.push(['sql', buf.toString()]);
+        const names = ['id', 'user_id', 'started_at', 'ended_at', 'risk_score', 'status', 'caller_number', 'twilio_call_sid'];
+        res.end(JSON.stringify([{ schema: { elements: names.map((n) => ({ name: { some: n } })) },
+          rows: sessions.map((r) => [r.id, r.userId, 0, { none: [] }, 0, { Active: [] }, r.callerNumber, r.callSid]) }]));
       } else {
-        calls.push([req.url.split('/').pop(), JSON.parse(buf)]);
+        const reducer = req.url.split('/').pop();
+        const args = JSON.parse(buf);
+        calls.push([reducer, args]);
+        if (reducer === 'start_call_session') sessions.push({ id: 100 + sessions.length, userId: args[0], callerNumber: args[1], callSid: args[2] });
         res.end();
       }
     });

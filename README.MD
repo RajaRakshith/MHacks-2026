@@ -13,15 +13,15 @@ ScamShield is a real-time scam-call defense system. It joins your suspicious cal
 ## Architecture
 
 1. **Call ingestion:** User receives suspicious call → Add Call → dial ScamShield's Twilio number → Merge. Twilio Media Streams pipes live audio to your server over websocket.
-2. **Transcription:** ElevenLabs (Scribe) converts audio to real-time text. Optional: ElevenLabs TTS injects a spoken warning into the call at critical risk ("Warning: this call shows signs of fraud").
-3. **Risk engine:** Transcript chunks go to an LLM (Gemini) with structured output — risk score 0–100, detected signals, recommended action. Scores update as the conversation evolves.
+2. **Transcription:** Grok Voice (xAI realtime) transcribes the call live. ElevenLabs (Scribe) is the redundancy: if Grok can't connect, errors, or drops mid-call, that call fails over to ElevenLabs automatically. ElevenLabs TTS also speaks a one-time warning into the call at critical risk ("This is a scam call, please hang up.").
+3. **Risk engine:** Grok scores the conversation as it goes via a structured `report_risk` tool call — risk score 0–100, detected signals, recommended action, victim-facing warning. After a failover, Grok's text API scores the ElevenLabs transcript instead, with a keyword heuristic as the last resort so a score always reaches SpacetimeDB.
 4. **Real-time state (SpacetimeDB):** `call_sessions` table holds live risk per user; `transfer_intents` table holds every transfer as pending → held / released. The phone app and the policy engine both subscribe — no polling.
-5. **Money gate:** The mock Capital One bank app (Nessie underneath for accounts, balances, ledger) never calls Nessie transfers directly. It submits transfer intents to ScamShield's policy endpoint, which checks for an active high-risk call session before executing. No code path moves money without the check.
+5. **Money gate:** The mock Capital One bank app (Nessie underneath for accounts, balances, ledger) never calls Nessie transfers directly. It calls the `request_transfer` reducer, which checks for an active high-risk call session (risk ≥ 70 by default) in the same transaction that records the intent. No code path moves money without the check.
 6. **Durable store (Neon Postgres):** users, devices, call history, held-transfer audit log, signal timelines for the post-call report.
 
 ## APIs and connectors needed
 
-Twilio (Programmable Voice + Media Streams + a phone number), ElevenLabs (STT, optionally TTS), Google Gemini (risk scoring), SpacetimeDB (live backend), Nessie/Capital One (mock banking ledger), Neon (Postgres + auth).
+Twilio (Programmable Voice + Media Streams + a phone number), xAI Grok (Grok Voice STT + risk scoring), ElevenLabs (backup STT + TTS warning), SpacetimeDB (live backend), Nessie/Capital One (mock banking ledger), Neon (Postgres + auth).
 
 **Stretch:** register the risk analyzer on Fetch.ai Agentverse so other agents can query call risk via ASI:One.
 
@@ -39,12 +39,49 @@ Teammate plays the scammer ("fraud department," urgent, demands a wire + OTP). V
 
 Twilio merge + Media Streams setup is the hardest infra piece — get a basic "third participant hears audio" working first. Then STT latency/chunking, then the policy gate, then polish. False-positive handling (user override with explicit confirm) is worth mentioning to judges so it doesn't look naive.
 
-## SpacetimeDB backend (this repo)
+## Repo layout
 
-The live backend lives in `spacetimedb/` — three tables (`call_sessions`, `risk_events`, `transfer_intents`) plus reducers including the atomic `request_transfer` money gate. A transfer worker in `worker/` subscribes to approved intents and executes Nessie transfers.
+| Folder | What it is | Came from branch |
+|--------|------------|------------------|
+| `scamshield-bridge/` | **The call server.** Twilio webhook + Media Stream → Grok Voice (ElevenLabs failover) → SpacetimeDB reducers; ElevenLabs TTS warning | `LocalServer`, `elevenlabs` |
+| `spacetimedb/` | SpacetimeDB module: `call_sessions`, `risk_events`, `transcript_segments`, `transfer_intents`, `config` + the atomic `request_transfer` money gate | `spacetime` |
+| `worker/` | Transfer worker: subscribes to approved `transfer_intents`, executes them on Nessie | `spacetime` |
+| `server/` | Alternative TypeScript ingestion server (realtime-socket STT via the SpacetimeDB SDK). Not needed to run the demo; see [docs/INGESTION.md](docs/INGESTION.md) | `spacetime` |
+| `Twilio/` | Standalone Twilio Media Streams proof of concept that records call audio to `.ulaw` files | `twilio` |
 
-**Setup:** see [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md).
+```
+Twilio ──POST /twilio/voice──▶ scamshield-bridge ──▶ Grok Voice ─┐ transcript + risk
+       ──wss /media-stream──▶        │  (Grok fails) ─▶ ElevenLabs ┘
+                                     │ HTTP reducers: start_call_session / append_transcript_segment
+                                     ▼                record_risk_event / end_call_session
+                               SpacetimeDB (spacetimedb/) ◀── request_transfer ── bank app
+                                     │ approved intents
+                                     ▼
+                               worker/ ──▶ Nessie
+```
 
-## Call ingestion server
+## Running it locally
 
-Twilio audio → Grok STT (primary) + ElevenLabs (backup) → Grok risk scoring → SpacetimeDB. See [docs/INGESTION.md](docs/INGESTION.md).
+Needs Node 22.9+ (`winget install OpenJS.NodeJS.LTS`), the SpacetimeDB CLI (see [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md)), and ngrok.
+
+```powershell
+npm install                       # installs every workspace (bridge, module, worker, server)
+copy .env.example .env            # one .env at the repo root, read by bridge + worker + server
+notepad .env                      # XAI_API_KEY, ELEVENLABS_API_KEY, NESSIE_API_KEY, ...
+
+# terminal 1 — local SpacetimeDB on :3000
+spacetime start
+# terminal 2 — publish the module and generate client bindings for the worker
+npm run spacetime:publish:local
+npm run spacetime:generate
+# terminal 3 — call server on :8080
+npm run bridge:dev
+# terminal 4 — Nessie transfer worker
+npm run worker:dev
+# terminal 5 — expose the call server to Twilio
+ngrok http 8080
+```
+
+Point your Twilio number's **A call comes in** webhook at `https://YOUR-NGROK-HOST/twilio/voice?userId=demo-user` (HTTP POST). The `userId` must be the same one the bank app passes to `request_transfer`.
+
+`npm run bridge:test` runs the call server's mocked tests (no keys or SpacetimeDB needed). Details: [scamshield-bridge/README.md](scamshield-bridge/README.md), [docs/SPACETIMEDB.md](docs/SPACETIMEDB.md).

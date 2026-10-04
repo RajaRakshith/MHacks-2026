@@ -6,7 +6,8 @@
   "workspaces": [
     "spacetimedb",
     "worker",
-    "server"
+    "server",
+    "scamshield-bridge"
   ],
   "scripts": {
     "spacetime:dev": "spacetime dev --yes",
@@ -15,7 +16,10 @@
     "spacetime:publish:cloud": "spacetime publish --yes scamshield",
     "server:dev": "npm run dev --workspace=server",
     "worker:dev": "npm run dev --workspace=worker",
-    "worker:build": "npm run build --workspace=worker"
+    "worker:build": "npm run build --workspace=worker",
+    "bridge:dev": "npm run dev --workspace=scamshield-bridge",
+    "bridge:start": "npm start --workspace=scamshield-bridge",
+    "bridge:test": "npm test --workspace=scamshield-bridge"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
