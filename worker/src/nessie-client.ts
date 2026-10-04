@@ -1,6 +1,5 @@
 /**
- * Stub Nessie client for the transfer worker.
- * Replace with real Capital One Nessie API calls once account IDs are wired up.
+ * Nessie client for the transfer worker.
  */
 
 export type NessieTransferRequest = {
@@ -19,35 +18,44 @@ export async function executeNessieTransfer(
   request: NessieTransferRequest
 ): Promise<NessieTransferResult> {
   const apiKey = process.env.NESSIE_API_KEY;
+  const accountId = process.env.NESSIE_ACCOUNT_ID;
+  if (!apiKey) return { ok: false, error: 'NESSIE_API_KEY is not set' };
+  if (!accountId) return { ok: false, error: 'NESSIE_ACCOUNT_ID is not set' };
+
   const baseUrl =
     process.env.NESSIE_BASE_URL ?? 'http://api.nessieisreal.com';
-
-  if (!apiKey) {
-    console.warn(
-      `[nessie] NESSIE_API_KEY not set — simulating transfer for intent ${request.intentId}`
-    );
-    return {
-      ok: true,
-      transferId: `mock-${request.intentId}-${Date.now()}`,
-    };
-  }
+  const transaction_date = new Date().toISOString().slice(0, 10);
+  const amount = Number(request.amountCents) / 100;
+  const description =
+    request.memo ?? 'Transfer to ' + request.destinationAccount;
 
   try {
-    // TODO: wire to actual Nessie transfer endpoint for your demo account.
-    const response = await fetch(
-      `${baseUrl}/accounts/${request.destinationAccount}/transfers?key=${apiKey}`,
-      {
+    const transferUrl = `${baseUrl}/accounts/${accountId}/transfers?key=${encodeURIComponent(apiKey)}`;
+    let response = await fetch(transferUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_date,
+        status: 'completed',
+        amount,
+        description,
+      }),
+    });
+
+    if (response.status === 403 || response.status === 404) {
+      const withdrawalUrl = `${baseUrl}/accounts/${accountId}/withdrawals?key=${encodeURIComponent(apiKey)}`;
+      response = await fetch(withdrawalUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           medium: 'balance',
-          payee_id: request.destinationAccount,
-          amount: Number(request.amountCents) / 100,
-          transaction_date: new Date().toISOString().slice(0, 10),
-          description: request.memo ?? 'ScamShield transfer',
+          transaction_date,
+          status: 'completed',
+          amount,
+          description,
         }),
-      }
-    );
+      });
+    }
 
     if (!response.ok) {
       const text = await response.text();

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "tsx watch --env-file-if-exists=../.env src/transfer-worker.ts",
     "start": "node dist/transfer-worker.js",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "spacetimedb": "^1.12.0"
