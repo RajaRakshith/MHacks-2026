@@ -82,6 +82,17 @@ export function TryPage() {
     if (await sendLine(upNext.text, upNext.speaker)) setNext(next + 1);
   }
 
+  /** A blank conversation: a new empty call, the script rewound, the boxes cleared. */
+  async function reset() {
+    stop.current = true;
+    setBusy(true);
+    const reply = await postRelay("/type/reset", {});
+    setBusy(false);
+    setNext(0);
+    setText("");
+    setLast(reply.ok ? "New conversation started." : reply.error ?? "Could not reset.");
+  }
+
   async function playAll() {
     stop.current = false;
     setPlaying(true);
@@ -102,7 +113,17 @@ export function TryPage() {
 
   return (
     <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
-      <Panel title="Type a line of the call">
+      <Panel
+        title="Type a line of the call"
+        aside={
+          <span className="flex gap-2">
+            <Button onClick={() => void reset()} disabled={busy}>Reset conversation</Button>
+            <a href="/" className="inline-flex items-center rounded-lg border border-line bg-card px-3.5 py-2 text-sm font-medium text-ink hover:bg-sunken">
+              ← Back
+            </a>
+          </span>
+        }
+      >
         <form onSubmit={onSubmit} className="flex flex-col gap-3">
           <fieldset className="flex gap-2">
             <legend className="mb-1 text-xs font-medium text-muted">Who said it</legend>

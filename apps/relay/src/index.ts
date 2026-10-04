@@ -99,6 +99,15 @@ app.post<{ Body: { text?: string; speaker?: string } | null }>("/type", async (r
   return { ok: true, callId: callId.toString(), score: row?.score ?? 0, state: row?.state ?? "listening", ms: Date.now() - started };
 });
 
+// TEMPORARY, with /type: ends whatever call is open and starts an empty one, for a blank conversation.
+app.post("/type/reset", async (_req, reply) => {
+  if (!isConnected()) return reply.code(503).send({ ok: false, error: "The relay is not connected to SpacetimeDB yet." });
+  cancelSimulation();
+  typedSessions.clear();
+  const callId = await startCall(db(), "");
+  return { ok: true, callId: callId.toString() };
+});
+
 app.post<{ Body: Record<string, string> | null }>("/twilio/voice", async (req, reply) => {
   const params = req.body ?? {};
   const signature = req.headers["x-twilio-signature"];

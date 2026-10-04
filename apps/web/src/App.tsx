@@ -2,7 +2,9 @@ import { tables } from "@scamshield/bindings";
 import { useSpacetimeDB, useTable } from "spacetimedb/react";
 import { AccountPanel } from "./components/AccountPanel";
 import { AnalysisPanel } from "./components/AnalysisPanel";
+import { useState } from "react";
 import { HeldPanel } from "./components/HeldPanel";
+import { Login, isSignedIn, signOut } from "./components/Login";
 import { ShieldPanel } from "./components/ShieldPanel";
 import { TryPage } from "./components/TryPage";
 
@@ -29,17 +31,25 @@ export function App() {
   const { isActive, connectionError } = useSpacetimeDB();
   const [configs] = useTable(tables.config);
   const mock = configs[0]?.mock;
+  const [signedIn, setSignedIn] = useState(isSignedIn);
+  const onTry = window.location.pathname === "/try";
+
+  if (!signedIn) return <Login onSignedIn={() => setSignedIn(true)} />;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-[1400px] flex-col px-4 py-5 sm:px-6">
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Logo />
         <div className="flex items-center gap-2 text-xs font-medium text-muted">
+          {!onTry && (
+            <a href="/try" className="rounded-full border border-line bg-card px-2.5 py-1 text-ink hover:bg-sunken">Test the analyzer</a>
+          )}
           {mock === true && <span className="rounded-full border border-line bg-card px-2.5 py-1">Mock mode</span>}
           <span className="flex items-center gap-1.5 rounded-full border border-line bg-card px-2.5 py-1" role="status">
             <span className={`size-2 rounded-full ${isActive ? "bg-good" : "bg-idle"}`} aria-hidden="true" />
             {isActive ? "Live" : connectionError ? "Offline" : "Connecting…"}
           </span>
+          <button type="button" onClick={signOut} className="rounded-full border border-line bg-card px-2.5 py-1 text-ink hover:bg-sunken">Sign out</button>
         </div>
       </header>
 
@@ -50,7 +60,7 @@ export function App() {
       )}
 
       {/* TEMPORARY: /try is a test page for typing lines at the analyzer. */}
-      {window.location.pathname === "/try" ? (
+      {onTry ? (
         <TryPage />
       ) : (
         /* Three panels side by side at 1024px and wider; stacked below that. */

@@ -10,7 +10,7 @@ export interface RelayReply {
   error?: string;
 }
 
-export async function postRelay(path: "/protect" | "/simulate" | "/type", body: Record<string, unknown>): Promise<RelayReply> {
+export async function postRelay(path: "/protect" | "/simulate" | "/type" | "/type/reset", body: Record<string, unknown>): Promise<RelayReply> {
   try {
     const res = await fetch(`${RELAY_URL}${path}`, {
       method: "POST",
