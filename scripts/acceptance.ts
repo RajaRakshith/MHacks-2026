@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { hasStoredTransferId } from './nessie-transfer-id.ts';
 
 const DB = process.env.SPACETIME_DATABASE ?? 'scamshield-dev';
 const SERVER = (process.env.SPACETIME_URI ?? 'ws://127.0.0.1:3000').replace(/^ws/, 'http');
@@ -84,8 +85,7 @@ try {
   // A running worker may already have failed this row without calling Nessie.
 }
 const failed = (await sql("SELECT id, status, nessie_transfer_id FROM transfer_intents WHERE user_id = 'someone-else'")).at(-1);
-const storedTransferId = failed?.[2];
-const sent = storedTransferId != null && storedTransferId !== '' && !(typeof storedTransferId === 'object' && storedTransferId !== null && 'none' in storedTransferId);
+const sent = hasStoredTransferId(failed?.[2]);
 if (!failed || Number(failed[0]) !== Number(other[0]) || !isFailed(failed[1]) || sent) {
   throw new Error(`someone-else must be Failed with no Nessie transfer id, got ${JSON.stringify(failed)}`);
 }
