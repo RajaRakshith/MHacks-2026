@@ -7,7 +7,7 @@ export interface RelayReply {
 }
 
 /** The relay owns anything phone-related: /protect and /simulate. Everything else goes to SpacetimeDB. */
-export async function postRelay(path: "/protect" | "/simulate" | "/type/reset", body: Record<string, unknown>): Promise<RelayReply> {
+export async function relayPost(path: "/protect" | "/simulate" | "/type/reset", body: Record<string, unknown>): Promise<RelayReply> {
   try {
     const res = await fetch(`${relayUrl()}${path}`, {
       method: "POST",

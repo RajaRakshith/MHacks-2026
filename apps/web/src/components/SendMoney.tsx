@@ -1,75 +1,83 @@
-import { procedures, tables } from "@scamshield/bindings";
-import type { TransferResult } from "@scamshield/bindings/types";
-import { useState, type FormEvent } from "react";
-import { useProcedure, useTable } from "spacetimedb/react";
+import { reducers, tables } from "@scamshield/bindings";
+import { DEMO_USER_ID, dollarsToCents } from "@scamshield/core";
+import { useMemo, useState, type FormEvent } from "react";
+import { useReducer, useSpacetimeDB, useTable } from "spacetimedb/react";
 import { usdCompact } from "../lib/format";
-import { Button, Icon, SectionLabel } from "./ui";
-
-const CASH = "Cash withdrawal";
-
-interface Sent {
-  payee: string;
-  amount: number;
-  result: TransferResult;
-}
+import { Button, SectionLabel } from "./ui";
 
 const field = "w-full rounded-lg border border-line bg-card px-3 py-2 text-sm text-ink placeholder:text-muted focus:outline-2 focus:outline-offset-1 focus:outline-brand";
 
-/**
- * Every transfer goes through the request_transfer procedure, which runs the
- * guard rules before anything reaches Nessie. The result shows inline as
- * Sent, Held (with reason), or Needs confirmation.
- */
+const STATUS_TONE: Record<string, string> = {
+  Held: "border-critical bg-critical-track",
+  Approved: "border-line bg-good-track",
+  Completed: "border-line bg-good-track",
+  Failed: "border-critical bg-critical-track",
+  Expired: "border-warning bg-warning-track",
+};
+
+function errorText(err: unknown): string {
+  return err instanceof Error && err.message ? err.message : "Could not send this transfer.";
+}
+
 export function SendMoney() {
-  const [payees] = useTable(tables.payee);
-  const [configs] = useTable(tables.config);
-  const requestTransfer = useProcedure(procedures.requestTransfer);
+  const { isActive } = useSpacetimeDB();
+  const [payees] = useTable(tables.payees);
+  const [intents] = useTable(tables.transferIntents);
+  const requestTransfer = useReducer(reducers.requestTransfer);
 
   const [payee, setPayee] = useState("");
   const [amount, setAmount] = useState("");
   const [memo, setMemo] = useState("");
   const [busy, setBusy] = useState(false);
-  const [last, setLast] = useState<Sent | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [watermark, setWatermark] = useState<bigint | null>(null);
 
-  const supportsTransfers = configs[0]?.supportsTransfers ?? false;
-  const saved = [...payees].sort((a, b) => a.name.localeCompare(b.name));
+  const saved = useMemo(() => [...payees].sort((a, b) => a.name.localeCompare(b.name)), [payees]);
 
-  async function submit(confirmed: boolean) {
-    const value = Number(amount);
+  const newest = useMemo(() => {
+    if (watermark === null) return null;
+    let best: (typeof intents)[number] | null = null;
+    for (const row of intents) {
+      if (row.userId !== DEMO_USER_ID || row.id <= watermark) continue;
+      if (!best || row.id > best.id) best = row;
+    }
+    return best;
+  }, [intents, watermark]);
+
+  async function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (!isActive) {
+      setError("Cannot reach the database. Start everything with pnpm dev.");
+      return;
+    }
+    let maxId = -1n;
+    for (const row of intents) {
+      if (row.userId === DEMO_USER_ID && row.id > maxId) maxId = row.id;
+    }
     setBusy(true);
     try {
-      const result = await requestTransfer({ payee: payee.trim(), amount: value, memo: memo.trim(), confirmed: confirmed ? true : undefined });
-      setLast({ payee: payee.trim(), amount: value, result });
-      if (result.outcome === "sent" || result.outcome === "held") {
-        setAmount("");
-        setMemo("");
-      }
-    } catch {
-      setLast({ payee: payee.trim(), amount: value, result: { outcome: "error", message: "Could not reach the bank. Try again.", rule: 0, viaWithdrawal: false } });
+      await requestTransfer({
+        userId: DEMO_USER_ID,
+        amountCents: dollarsToCents(Number(amount)),
+        destinationAccount: payee.trim(),
+        memo: memo.trim() || undefined,
+      });
+      setWatermark(maxId);
+      setAmount("");
+      setMemo("");
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
     }
-    setBusy(false);
   }
 
-  function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    void submit(false);
-  }
+  const tone = newest ? (STATUS_TONE[newest.status.tag] ?? "border-line bg-sunken") : "";
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex items-center gap-1.5">
-        <SectionLabel>Send money</SectionLabel>
-        {!supportsTransfers && (
-          <span
-            className="cursor-help text-muted"
-            tabIndex={0}
-            title="Nessie's transfer endpoint is not available, so money you send is posted as a withdrawal described “Transfer to <payee>”."
-            aria-label="Money you send is posted as a withdrawal described Transfer to payee, because Nessie's transfer endpoint is not available."
-          >
-            {Icon.info}
-          </span>
-        )}
-      </div>
+      <SectionLabel>Send money</SectionLabel>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-2.5">
         <div>
@@ -79,7 +87,7 @@ export function SendMoney() {
             list="saved-payees"
             value={payee}
             onChange={(e) => setPayee(e.target.value)}
-            placeholder="Saved payee or a new name"
+            placeholder="Saved payee or account"
             autoComplete="off"
             required
             className={field}
@@ -88,7 +96,6 @@ export function SendMoney() {
             {saved.map((p) => (
               <option key={p.name} value={p.name} />
             ))}
-            <option value={CASH} />
           </datalist>
         </div>
 
@@ -117,60 +124,20 @@ export function SendMoney() {
         <Button type="submit" variant="primary" disabled={busy}>{busy ? "Sending…" : "Send"}</Button>
       </form>
 
-      {last && <Result sent={last} busy={busy} onConfirm={() => void submit(true)} onCancel={() => setLast(null)} />}
-    </div>
-  );
-}
+      {error && (
+        <p className="rounded-lg border border-critical bg-critical-track px-3 py-2.5 text-sm text-ink" role="alert">{error}</p>
+      )}
 
-function Result({ sent, busy, onConfirm, onCancel }: { sent: Sent; busy: boolean; onConfirm: () => void; onCancel: () => void }) {
-  const { result } = sent;
-  const what = `${usdCompact(sent.amount)} to ${sent.payee}`;
-
-  if (result.outcome === "sent") {
-    return (
-      <div className="rounded-lg border border-line bg-good-track px-3 py-2.5 text-sm text-ink" role="status">
-        <p className="flex items-center gap-1.5 font-semibold">
-          <span className="text-good">{Icon.check}</span>
-          Sent: {what}
-        </p>
-        {result.message && <p className="mt-1">{result.message}</p>}
-        {result.viaWithdrawal && <p className="mt-1 text-xs text-muted">Posted as a withdrawal described “Transfer to {sent.payee}”.</p>}
-      </div>
-    );
-  }
-
-  if (result.outcome === "held") {
-    return (
-      <div className="rounded-lg border border-critical bg-critical-track px-3 py-2.5 text-sm text-ink" role="alert">
-        <p className="flex items-center gap-1.5 font-semibold">
-          {Icon.lock}
-          {result.message}
-        </p>
-        <p className="mt-1">{what} will not be sent unless a trusted contact approves it.</p>
-      </div>
-    );
-  }
-
-  if (result.outcome === "needs_confirmation") {
-    return (
-      <div className="rounded-lg border border-warning bg-warning-track px-3 py-2.5 text-sm text-ink" role="alert">
-        <p className="flex items-center gap-1.5 font-semibold">
-          {Icon.warn}
-          Needs confirmation: {what}
-        </p>
-        <p className="mt-1">{result.message}</p>
-        <div className="mt-2.5 flex gap-2">
-          <Button onClick={onConfirm} disabled={busy}>Continue</Button>
-          <Button variant="quiet" onClick={onCancel} disabled={busy}>Cancel</Button>
+      {newest && (
+        <div className={`rounded-lg border px-3 py-2.5 text-sm text-ink ${tone}`} role="status">
+          <p className="font-semibold">{newest.status.tag}</p>
+          <p className="mt-1">
+            {usdCompact(Number(newest.amountCents) / 100)} to {newest.destinationAccount}
+          </p>
+          {newest.holdReason && <p className="mt-1">{newest.holdReason}</p>}
+          {newest.memo && <p className="mt-1 text-xs text-muted">Memo: {newest.memo}</p>}
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-line bg-sunken px-3 py-2.5 text-sm text-ink" role="alert">
-      <p className="font-semibold">Not sent</p>
-      <p className="mt-1">{result.message}</p>
+      )}
     </div>
   );
 }

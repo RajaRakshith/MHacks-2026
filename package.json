@@ -22,6 +22,7 @@
     "acceptance": "tsx scripts/acceptance.ts",
     "test": "npm run bridge:test",
     "test:dashboard": "pnpm -r --if-present test",
+    "test:ui-wiring": "node scripts/check-ui-wiring.mjs",
     "typecheck": "pnpm -r --if-present typecheck",
     "build": "pnpm -r --if-present build",
     "mobile": "pnpm --filter @scamshield/mobile start",

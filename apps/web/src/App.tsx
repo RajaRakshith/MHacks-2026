@@ -1,12 +1,9 @@
-import { tables } from "@scamshield/bindings";
-import { useSpacetimeDB, useTable } from "spacetimedb/react";
-import { AccountPanel } from "./components/AccountPanel";
-import { AnalysisPanel } from "./components/AnalysisPanel";
 import { useState } from "react";
+import { useSpacetimeDB } from "spacetimedb/react";
+import { AccountPanel } from "./components/AccountPanel";
 import { HeldPanel } from "./components/HeldPanel";
 import { Login, isSignedIn, signOut } from "./components/Login";
 import { ShieldPanel } from "./components/ShieldPanel";
-import { TryPage } from "./components/TryPage";
 
 function Logo() {
   return (
@@ -29,10 +26,7 @@ function Logo() {
 
 export function App() {
   const { isActive, connectionError } = useSpacetimeDB();
-  const [configs] = useTable(tables.config);
-  const mock = configs[0]?.mock;
   const [signedIn, setSignedIn] = useState(isSignedIn);
-  const onTry = window.location.pathname === "/try";
 
   if (!signedIn) return <Login onSignedIn={() => setSignedIn(true)} />;
 
@@ -41,10 +35,6 @@ export function App() {
       <header className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Logo />
         <div className="flex items-center gap-2 text-xs font-medium text-muted">
-          {!onTry && (
-            <a href="/try" className="rounded-full border border-line bg-card px-2.5 py-1 text-ink hover:bg-sunken">Test the analyzer</a>
-          )}
-          {mock === true && <span className="rounded-full border border-line bg-card px-2.5 py-1">Mock mode</span>}
           <span className="flex items-center gap-1.5 rounded-full border border-line bg-card px-2.5 py-1" role="status">
             <span className={`size-2 rounded-full ${isActive ? "bg-good" : "bg-idle"}`} aria-hidden="true" />
             {isActive ? "Live" : connectionError ? "Offline" : "Connecting…"}
@@ -59,20 +49,12 @@ export function App() {
         </p>
       )}
 
-      {/* TEMPORARY: /try is a test page for typing lines at the analyzer. */}
-      {onTry ? (
-        <TryPage />
-      ) : (
-        /* Three panels side by side at 1024px and wider; stacked below that. */
-        <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
-          <AccountPanel />
-          <ShieldPanel />
-          <div className="flex min-w-0 flex-col gap-4">
-            <HeldPanel />
-            <AnalysisPanel />
-          </div>
-        </main>
-      )}
+      {/* Three panels side by side at 1024px and wider; stacked below that. */}
+      <main className="grid flex-1 grid-cols-1 items-start gap-4 lg:grid-cols-3">
+        <AccountPanel />
+        <ShieldPanel />
+        <HeldPanel />
+      </main>
 
       <footer className="mt-6 text-center text-xs text-muted">Demo app. Mock data from the Capital One Nessie hackathon API.</footer>
     </div>
