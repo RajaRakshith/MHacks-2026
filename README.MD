@@ -106,7 +106,7 @@ Merge Watchdog on the phone; the dashboard watches. Send $2000 during a high-ris
 1. Install **Expo Go** from the App Store.
 2. With `pnpm dev` running in one terminal, run `pnpm phone` in a second one and scan the QR code.
 
-`pnpm phone` follows `.env`. If `SPACETIME_URI` is Maincloud, the phone talks to that database directly (no `cloudflared`). If it is local `:3000`, the script tunnels that port so the phone can reach this laptop. The Expo JS bundle is always tunneled. The phone app does not use the relay.
+`pnpm phone` follows `.env`. If `SPACETIME_URI` is Maincloud, the phone talks to that database directly (no extra database tunnel). If it is local `:3000`, the script tunnels that port so the phone can reach this laptop. The Expo JS bundle is tunneled through Cloudflare. Campus DNS often cannot resolve `*.trycloudflare.com`; in that case the QR is the LAN address, and the tunnel URL is for cellular. Do not reopen an old Expo Go project. The phone app does not use the relay.
 
 **On the same Wi-Fi, local database, without tunnels:** `pnpm dev --lan` then `pnpm mobile`. `--lan` opens the demo database to everyone on the network.
 

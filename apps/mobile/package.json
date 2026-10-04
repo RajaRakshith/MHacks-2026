@@ -23,7 +23,7 @@
     "spacetimedb": "2.10.*"
   },
   "devDependencies": {
-    "@expo/ngrok": "^4.1.0",
+    "@expo/ngrok": "npm:expo-cloudflared@^4.2.2",
     "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
@@ -32,6 +32,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
+    "test": "node --test test/*.test.mjs",
     "export:ios": "expo export --platform ios --output-dir dist"
   },
   "private": true,

@@ -16,11 +16,14 @@ export interface Endpoints {
 
 export const SPACETIME_DB = process.env.EXPO_PUBLIC_SPACETIME_DB ?? "watchdog-dev";
 
-/** The dev server this app was loaded from, e.g. "https://abc-8081.exp.direct" or "http://192.168.1.20:8081". */
+/** The dev server this app was loaded from, e.g. "https://abc.trycloudflare.com:443" or "http://192.168.1.20:8081". */
 function devOrigin(): string {
   if (Platform.OS === "web" && typeof window !== "undefined") return window.location.origin;
   const hostUri = Constants.expoConfig?.hostUri ?? "localhost:8081";
-  return /\.exp\.direct$/.test(hostUri.split(":")[0] ?? "") ? `https://${hostUri.split(":")[0]}` : `http://${hostUri}`;
+  const hostname = hostUri.split(":")[0] ?? "";
+  const port = hostUri.split(":")[1] ?? "";
+  const https = port === "443" || hostname.endsWith(".exp.direct") || hostname.endsWith(".trycloudflare.com");
+  return `${https ? "https" : "http"}://${hostUri}`;
 }
 
 function devHost(): string {

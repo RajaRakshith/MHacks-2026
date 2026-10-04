@@ -2,11 +2,13 @@
 /**
  * `pnpm phone`: runs the iOS app on a real phone through Expo Go.
  *
- * The Expo JS bundle is always tunneled (`expo start --tunnel`).
+ * The Expo JS bundle is always tunneled through Cloudflare (`expo-cloudflared`).
+ * Expo Go then opens `exp://<trycloudflare-host>:443`. We do not use
+ * `expo start --tunnel` (that still talks to dead ngrok / exp.direct hosts).
  * The database is whatever `.env` says:
  *
  *   Maincloud (SPACETIME_URI=wss://maincloud…)  the phone talks to cloud directly.
- *                                               No cloudflared.
+ *                                               No extra database tunnel.
  *   Local (ws://127.0.0.1:3000)                 cloudflared tunnels port 3000 so
  *                                               the phone can reach this laptop.
  *
@@ -15,9 +17,13 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { lookup } from "node:dns/promises";
+import { createRequire } from "node:module";
 import { createServer } from "node:net";
+import { networkInterfaces } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { expoCliArgs, expoGoUrl, expoPackagerEnv } from "./phone-expo.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -45,6 +51,7 @@ try {
 
 const children = [];
 let shuttingDown = false;
+let killMetroTunnel = () => {};
 
 function stop(child) {
   if (child.exitCode !== null || child.pid === undefined) return;
@@ -58,6 +65,11 @@ function stop(child) {
 function shutdown(code = 0) {
   if (shuttingDown) return;
   shuttingDown = true;
+  try {
+    killMetroTunnel();
+  } catch {
+    // Tunnel already gone.
+  }
   for (const child of children) stop(child);
   setTimeout(() => process.exit(code), 400);
 }
@@ -182,13 +194,112 @@ async function watch(dbTunnel) {
   }
 }
 
-function startExpo() {
-  console.log("[phone] Starting Expo. Scan the QR code with the iPhone camera; it opens in Expo Go.\n");
-  const expo = spawn(process.execPath, [resolve(ROOT, "apps/mobile/node_modules/expo/bin/cli"), "start", "--tunnel", "--clear"], {
+function expoTunnelApi() {
+  const require = createRequire(import.meta.url);
+  return require(resolve(ROOT, "apps/mobile/node_modules/@expo/ngrok"));
+}
+
+async function preferredMetroPort() {
+  return new Promise((resolvePort) => {
+    const server = createServer();
+    server.once("error", () => resolvePort(null));
+    server.listen(8081, "127.0.0.1", () => {
+      server.close(() => resolvePort(8081));
+    });
+  });
+}
+
+function lanIPv4() {
+  for (const addrs of Object.values(networkInterfaces())) {
+    for (const a of addrs ?? []) {
+      if (a.family === "IPv4" && !a.internal) return a.address;
+    }
+  }
+  return null;
+}
+
+async function publicDnsHas(host) {
+  try {
+    const res = await fetch(`https://1.1.1.1/dns-query?name=${encodeURIComponent(host)}&type=A`, {
+      headers: { accept: "application/dns-json" },
+      signal: AbortSignal.timeout(4000),
+    });
+    const json = await res.json();
+    return json.Status === 0 && Array.isArray(json.Answer) && json.Answer.some((a) => a.type === 1);
+  } catch {
+    return false;
+  }
+}
+
+async function systemDnsHas(host) {
+  try {
+    await lookup(host);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForPublicDns(host) {
+  for (let i = 0; i < 15; i++) {
+    if (await publicDnsHas(host)) return true;
+    await sleep(1000);
+  }
+  return false;
+}
+
+/**
+ * Open a Cloudflare tunnel to Metro, then start Expo with that public HTTPS
+ * URL. Expo Go resolves `exp://host:443`; `expo start --tunnel` still points
+ * it at exp.direct / ngrok, which no longer have a hostname.
+ */
+async function startExpo() {
+  const cf = expoTunnelApi();
+  if (typeof cf.isInstalled === "function" && !cf.isInstalled()) {
+    console.log("[phone] Installing the Expo tunnel binary (first run only)...");
+    await cf.ensureBinary();
+  }
+
+  const port = (await preferredMetroPort()) ?? (await freePort());
+  console.log("[phone] Opening a Cloudflare tunnel to the Expo bundler...");
+  const packagerProxyUrl = await cf.connect({
+    addr: port,
+    proto: "http",
+    startTimeoutMs: 45_000,
+    onStatusChange(status) {
+      if (status === "closed") {
+        console.warn("[phone] The Expo tunnel dropped. Stop this and run pnpm phone again.");
+      }
+    },
+  });
+  killMetroTunnel = () => {
+    try {
+      cf.kill();
+    } catch {
+      // Already stopped.
+    }
+  };
+
+  const host = new URL(packagerProxyUrl).hostname;
+  await waitForPublicDns(host);
+  const tunnelResolves = await systemDnsHas(host);
+  const lanIp = lanIPv4();
+  const goUrl = expoGoUrl(packagerProxyUrl);
+  console.log(`[phone] Expo Go   ${goUrl}`);
+  if (!tunnelResolves) {
+    console.warn(`[phone] This network's DNS cannot resolve ${host} (common on campus Wi-Fi).`);
+    console.warn("[phone] The QR is the LAN address. Same Wi-Fi: scan it.");
+    console.warn(`[phone] Different network: turn off Wi-Fi on the iPhone and paste ${goUrl} into Expo Go.`);
+  } else {
+    console.log("[phone] Scan the new QR code. Do not reopen an old Expo Go project — that hostname is gone.\n");
+  }
+
+  const expo = spawn(process.execPath, [resolve(ROOT, "apps/mobile/node_modules/expo/bin/cli"), ...expoCliArgs(port)], {
     cwd: resolve(ROOT, "apps/mobile"),
     stdio: "inherit",
     env: {
       ...process.env,
+      ...expoPackagerEnv({ packagerProxyUrl, lanIp, tunnelResolves }),
       EXPO_PUBLIC_SPACETIME_URI: spacetimeUri,
       EXPO_PUBLIC_SPACETIME_DB: database,
     },
@@ -203,9 +314,9 @@ async function main() {
       console.error(`[phone] Cannot reach ${dbHttp}. Check SPACETIME_URI in .env.`);
       process.exit(1);
     }
-    console.log("[phone] Using the cloud database from .env (no local tunnel).");
+    console.log("[phone] Using the cloud database from .env (no extra database tunnel).");
     publishUri(spacetimeUri);
-    startExpo();
+    await startExpo();
     return;
   }
 
@@ -226,7 +337,7 @@ async function main() {
   const dbTunnel = await tunnel("database", dbHttp);
   publish(dbTunnel);
   void watch(dbTunnel);
-  startExpo();
+  await startExpo();
 }
 
 main().catch((e) => {
