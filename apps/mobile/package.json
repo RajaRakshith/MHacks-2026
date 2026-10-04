@@ -4,9 +4,9 @@
   "main": "expo-router/entry",
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@watchdog/bindings": "workspace:*",
     "@watchdog/core": "workspace:*",
-    "babel-preset-expo": "~57.0.0",
     "babel-preset-expo": "~57.0.13",
     "expo": "~57.0.26",
     "expo-constants": "~57.0.20",

@@ -12,6 +12,7 @@
  *   npm run worker:dev
  */
 
+import { createServer } from 'node:http';
 import { refreshAccount } from './account.js';
 import { settleApprovedIntent } from './approved-intent.js';
 import { dueHoldIds } from './expire.js';
@@ -35,6 +36,11 @@ type HeldRow = {
 
 const heldRows = new Map<bigint, HeldRow>();
 let holdExpiryTimer: ReturnType<typeof setInterval> | undefined;
+let accountRefreshTimer: ReturnType<typeof setInterval> | undefined;
+let refreshCtx: WorkerContext | null = null;
+
+const ACCOUNT_REFRESH_MS = Number(process.env.NESSIE_REFRESH_MS ?? 15_000);
+const REFRESH_PORT = Number(process.env.WORKER_REFRESH_PORT ?? 8788);
 
 type TransferRow = {
   id: bigint;
@@ -79,11 +85,56 @@ function startHoldExpiry(ctx: WorkerContext) {
   }, 60_000);
 }
 
+function startAccountRefresh(ctx: WorkerContext) {
+  refreshCtx = ctx;
+  if (accountRefreshTimer) clearInterval(accountRefreshTimer);
+  accountRefreshTimer = setInterval(() => {
+    void refreshAccount(ctx);
+  }, ACCOUNT_REFRESH_MS);
+}
+
 function stopHoldExpiry() {
-  if (!holdExpiryTimer) return;
-  clearInterval(holdExpiryTimer);
-  holdExpiryTimer = undefined;
+  if (holdExpiryTimer) {
+    clearInterval(holdExpiryTimer);
+    holdExpiryTimer = undefined;
+  }
+  if (accountRefreshTimer) {
+    clearInterval(accountRefreshTimer);
+    accountRefreshTimer = undefined;
+  }
+  refreshCtx = null;
   heldRows.clear();
+}
+
+function startRefreshEndpoint() {
+  const server = createServer((req, res) => {
+    if (req.method === 'POST' && (req.url === '/refresh' || req.url === '/refresh/')) {
+      if (!refreshCtx) {
+        res.writeHead(503, { 'content-type': 'text/plain' });
+        res.end('worker is not connected');
+        return;
+      }
+      void refreshAccount(refreshCtx).then(
+        () => {
+          res.writeHead(204);
+          res.end();
+        },
+        (err: unknown) => {
+          res.writeHead(500, { 'content-type': 'text/plain' });
+          res.end(err instanceof Error ? err.message : String(err));
+        }
+      );
+      return;
+    }
+    res.writeHead(404);
+    res.end();
+  });
+  server.listen(REFRESH_PORT, '127.0.0.1', () => {
+    console.log(`[worker] Refresh endpoint http://127.0.0.1:${REFRESH_PORT}/refresh`);
+  });
+  server.on('error', (err) => {
+    console.error(`[worker] Refresh endpoint failed: ${err instanceof Error ? err.message : String(err)}`);
+  });
 }
 
 async function handleApprovedIntent(
@@ -120,6 +171,7 @@ function connect() {
       registerHandlers(conn);
       void refreshAccount(ctx);
       startHoldExpiry(ctx);
+      startAccountRefresh(ctx);
 
       // The 2.10 query builder cannot compare the TransferIntentStatus enum column
       // with a literal, so subscribe to the table. syncHeldRow and
@@ -143,4 +195,5 @@ function connect() {
 }
 
 console.log('[worker] Watchdog transfer worker starting…');
+startRefreshEndpoint();
 connect();

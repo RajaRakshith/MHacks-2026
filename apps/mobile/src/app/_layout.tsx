@@ -6,10 +6,11 @@ import { StyleSheet, View } from "react-native";
 import { SpacetimeDBProvider } from "spacetimedb/react";
 import { Login } from "../components/Login";
 import { SPACETIME_DB, useEndpoints } from "../lib/config";
-import { useSignedIn } from "../lib/session";
+import { useAuthReady, useSignedIn } from "../lib/session";
 
 export default function RootLayout() {
   const signedIn = useSignedIn();
+  const authReady = useAuthReady();
   const endpoints = useEndpoints();
   const uri = endpoints?.spacetimeUri;
   // Every device connects to the database anonymously and sees the same account.
@@ -26,7 +27,7 @@ export default function RootLayout() {
     <SpacetimeDBProvider key={uri} connectionBuilder={connectionBuilder}>
       {/* The tabs stay mounted behind the sign-in screen so the data is ready the moment it closes. */}
       <Stack screenOptions={{ headerShown: false }} />
-      {!signedIn && (
+      {authReady && !signedIn && (
         <View style={StyleSheet.absoluteFill}>
           <Login />
         </View>

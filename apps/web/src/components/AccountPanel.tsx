@@ -1,4 +1,5 @@
 import { tables } from "@watchdog/bindings";
+import { DEMO_USER_ID, liveAvailableBalance, pendingSendActivity } from "@watchdog/core";
 import { useMemo } from "react";
 import { useTable } from "spacetimedb/react";
 import { shortDay, signedUsd, usd } from "../lib/format";
@@ -8,9 +9,16 @@ import { Empty, Panel, SectionLabel } from "./ui";
 export function AccountPanel() {
   const [snapshots, ready] = useTable(tables.accountSnapshot);
   const [activity] = useTable(tables.activity);
+  const [intents] = useTable(tables.transferIntents);
 
   const snapshot = snapshots[0];
-  const recent = useMemo(() => [...activity].sort((a, b) => a.sortIndex - b.sortIndex).slice(0, 10), [activity]);
+  const activityIds = useMemo(() => new Set([...activity].map((row) => row.id)), [activity]);
+  const liveIntents = useMemo(() => [...intents].filter((row) => row.userId === DEMO_USER_ID), [intents]);
+  const balance = snapshot ? liveAvailableBalance(snapshot.balance, liveIntents, activityIds) : 0;
+  const recent = useMemo(
+    () => [...pendingSendActivity(liveIntents, activityIds), ...[...activity].sort((a, b) => a.sortIndex - b.sortIndex)].slice(0, 10),
+    [activity, activityIds, liveIntents],
+  );
 
   return (
     <Panel title="Account">
@@ -29,7 +37,7 @@ export function AccountPanel() {
             {snapshot.nickname} <span className="tabular-nums">•••• {snapshot.last4}</span>
           </p>
           <p className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">Available balance</p>
-          <p className="text-5xl font-semibold leading-tight tracking-tight text-ink">{usd(snapshot.balance)}</p>
+          <p className="text-5xl font-semibold leading-tight tracking-tight text-ink">{usd(balance)}</p>
         </div>
       )}
 

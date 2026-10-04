@@ -130,7 +130,14 @@ export function ShieldPanel() {
       <details className="text-sm text-ink">
         <summary className="cursor-pointer font-medium">How to add Watchdog</summary>
         <p className="mt-2 text-muted">
-          Place or receive the call on your phone. Add a call to the Watchdog Twilio number, then Merge. This screen only watches that call — it does not start one.
+          Place or receive the call on your phone. Add a call to{" "}
+          <a
+            href="tel:+19067676720"
+            className="font-medium text-brand-strong underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            906-767-6720
+          </a>
+          , then Merge. This screen only watches that call — it does not start one.
         </p>
       </details>
     </Panel>

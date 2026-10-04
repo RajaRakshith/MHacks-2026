@@ -1,5 +1,6 @@
 import { tables } from "@watchdog/bindings";
 import { useMemo, useState } from "react";
+import * as Linking from "expo-linking";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { useTable } from "spacetimedb/react";
 import { RiskMeter } from "../../components/RiskMeter";
@@ -107,7 +108,16 @@ export default function ShieldScreen() {
         </Pressable>
         {helpOpen && (
           <Body muted>
-            Place or receive the call on your phone. Add a call to the Watchdog Twilio number, then Merge. This screen only watches that call — it does not start one.
+            Place or receive the call on your phone. Add a call to{" "}
+            <Text
+              accessibilityRole="link"
+              accessibilityLabel="Call Watchdog at 906-767-6720"
+              onPress={() => void Linking.openURL("tel:+19067676720")}
+              style={{ color: t.brandStrong, textDecorationLine: "underline" }}
+            >
+              906-767-6720
+            </Text>
+            , then Merge. This screen only watches that call — it does not start one.
           </Body>
         )}
       </Card>

@@ -1,0 +1,50 @@
+- generic [ref=f2e3]:
+  - banner [ref=f2e4]:
+    - generic [ref=f2e5]: C1 Mockup
+    - generic [ref=f2e10]:
+      - status [ref=f2e11]: Connecting…
+      - button "Sign out" [ref=f2e13]
+  - main [ref=f2e14]:
+    - region "Account" [ref=f2e15]:
+      - heading "Account" [level=2] [ref=f2e17]
+      - generic [ref=f2e18]:
+        - paragraph [ref=f2e19]: Loading account…
+        - generic [ref=f2e20]:
+          - heading "Recent activity" [level=3] [ref=f2e21]
+          - paragraph [ref=f2e22]: No activity yet.
+    - region "Watchdog" [ref=f2e23]:
+      - generic [ref=f2e24]:
+        - heading "Watchdog" [level=2] [ref=f2e25]
+        - status [ref=f2e26]: Idle
+      - generic [ref=f2e28]:
+        - generic [ref=f2e29]:
+          - generic [ref=f2e30]:
+            - paragraph [ref=f2e31]:
+              - generic [ref=f2e32]: –
+              - generic [ref=f2e33]: / 100 risk
+            - generic [ref=f2e34]: No call
+          - meter "Scam risk" [ref=f2e35]
+          - generic [aria-hidden] [ref=f2e38]:
+            - generic [ref=f2e39]: "0"
+            - generic [ref=f2e40]: "40"
+            - generic [ref=f2e41]: "70"
+            - generic [ref=f2e42]: "100"
+        - generic [ref=f2e43]:
+          - heading "Live transcript" [level=3] [ref=f2e44]
+          - paragraph [ref=f2e45]: No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.
+        - generic [ref=f2e46]:
+          - heading "Signals" [level=3] [ref=f2e47]
+          - paragraph [ref=f2e48]: None yet.
+        - group [ref=f2e49]:
+          - generic "How to add Watchdog" [ref=f2e50] [cursor=pointer]
+    - region "Held transactions" [ref=f2e51]:
+      - heading "Held transactions" [level=2] [ref=f2e53]
+      - generic [ref=f2e54]:
+        - generic [ref=f2e55]:
+          - paragraph [ref=f2e56]: Money protected
+          - paragraph [ref=f2e57]: $0
+          - paragraph [ref=f2e58]: Held or expired before the money was sent
+        - generic [ref=f2e59]:
+          - heading "On hold" [level=3] [ref=f2e60]
+          - paragraph [ref=f2e61]: Nothing is on hold.
+  - contentinfo [ref=f2e62]: Demo app. Mock data from the Capital One Nessie hackathon API.

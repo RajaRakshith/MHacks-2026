@@ -1,0 +1,59 @@
+- generic [ref=e24]:
+  - banner [ref=e25]:
+    - generic [ref=e26]: C1 Mockup
+    - generic [ref=e31]:
+      - status [ref=e32]: Offline
+      - button "Sign out" [ref=e34]
+  - alert [ref=e35]:
+    - text: Cannot reach the database. Start everything with
+    - code [ref=e36]: pnpm dev
+    - text: .
+  - main [ref=e37]:
+    - region "Account" [ref=e38]:
+      - heading "Account" [level=2] [ref=e40]
+      - generic [ref=e41]:
+        - paragraph [ref=e42]: Loading account…
+        - generic [ref=e43]:
+          - heading "Recent activity" [level=3] [ref=e44]
+          - paragraph [ref=e45]: No activity yet.
+    - region "Watchdog" [ref=e46]:
+      - generic [ref=e47]:
+        - heading "Watchdog" [level=2] [ref=e48]
+        - status [ref=e49]: Idle
+      - generic [ref=e51]:
+        - generic [ref=e52]:
+          - generic [ref=e53]:
+            - paragraph [ref=e54]:
+              - generic [ref=e55]: –
+              - generic [ref=e56]: / 100 risk
+            - generic [ref=e57]: No call
+          - meter "Scam risk" [ref=e58]
+          - generic [aria-hidden] [ref=e61]:
+            - generic [ref=e62]: "0"
+            - generic [ref=e63]: "40"
+            - generic [ref=e64]: "70"
+            - generic [ref=e65]: "100"
+        - generic [ref=e66]:
+          - heading "Live transcript" [level=3] [ref=e67]
+          - paragraph [ref=e68]: No call yet. Add Watchdog to a live call (Add Call, then Merge) using the Twilio number.
+        - generic [ref=e69]:
+          - heading "Signals" [level=3] [ref=e70]
+          - paragraph [ref=e71]: None yet.
+        - group [ref=e72]:
+          - generic "How to add Watchdog" [active] [ref=e73] [cursor=pointer]
+          - paragraph [ref=e86]:
+            - text: Place or receive the call on your phone. Add a call to
+            - link "906-767-6720" [ref=e87] [cursor=pointer]:
+              - /url: tel:+19067676720
+            - text: ", then Merge. This screen only watches that call — it does not start one."
+    - region "Held transactions" [ref=e74]:
+      - heading "Held transactions" [level=2] [ref=e76]
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - paragraph [ref=e79]: Money protected
+          - paragraph [ref=e80]: $0
+          - paragraph [ref=e81]: Held or expired before the money was sent
+        - generic [ref=e82]:
+          - heading "On hold" [level=3] [ref=e83]
+          - paragraph [ref=e84]: Nothing is on hold.
+  - contentinfo [ref=e85]: Demo app. Mock data from the Capital One Nessie hackathon API.

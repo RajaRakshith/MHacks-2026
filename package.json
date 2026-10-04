@@ -19,6 +19,7 @@
     "reset": "node scripts/dev.mjs --reset --publish-only",
     "module:publish": "node scripts/dev.mjs --publish-only",
     "seed": "tsx scripts/seed.ts",
+    "topup": "bash scripts/topup.sh",
     "acceptance": "tsx scripts/acceptance.ts",
     "test": "npm run bridge:test && npm run test:policy && npm run test:worker && npm run test:ui-wiring && pnpm --filter @watchdog/core test",
     "test:worker": "tsx --test worker/test/*.test.ts",

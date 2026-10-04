@@ -95,6 +95,57 @@ function txnId(row: NessieTxn): string {
   return '';
 }
 
+type LedgerRow = {
+  amount?: unknown;
+  status?: unknown;
+  payee_id?: unknown;
+};
+
+function liveAmount(row: LedgerRow): number | null {
+  if (row.status === 'cancelled') return null;
+  const raw = typeof row.amount === 'number' ? row.amount : Number(row.amount ?? 0);
+  return Number.isFinite(raw) ? raw : 0;
+}
+
+/**
+ * Nessie never updates account.balance after deposits, withdrawals, purchases,
+ * or transfers. Treat that field as the opening balance and apply live activity.
+ */
+export function computeAvailableBalance(
+  opening: number,
+  accountId: string,
+  lists: {
+    deposits: LedgerRow[];
+    withdrawals: LedgerRow[];
+    purchases: LedgerRow[];
+    transfers: LedgerRow[];
+  }
+): number {
+  let total = opening;
+  for (const row of lists.deposits) {
+    const amount = liveAmount(row);
+    if (amount !== null) total += amount;
+  }
+  for (const row of lists.withdrawals) {
+    const amount = liveAmount(row);
+    if (amount !== null) total -= amount;
+  }
+  for (const row of lists.purchases) {
+    const amount = liveAmount(row);
+    if (amount !== null) total -= amount;
+  }
+  for (const row of lists.transfers) {
+    const amount = liveAmount(row);
+    if (amount === null) continue;
+    total += row.payee_id === accountId ? amount : -amount;
+  }
+  return Math.round(total * 100) / 100;
+}
+
+function asLedgerRows(items: unknown[]): LedgerRow[] {
+  return items.filter((item): item is LedgerRow => !!item && typeof item === 'object');
+}
+
 function mapActivity(items: unknown[], kind: string, sign: 1 | -1): ActivityRow[] {
   const rows: ActivityRow[] = [];
   for (const item of items) {
@@ -165,30 +216,43 @@ export async function fetchNessieAccount(env: {
     typeof account.customer_id === 'string' && account.customer_id
       ? `/customers/${account.customer_id}`
       : null;
-  const [customerRes, depositsRes, withdrawalsRes, transfersRes] = await Promise.all([
+  const [customerRes, depositsRes, withdrawalsRes, transfersRes, purchasesRes] = await Promise.all([
     customerPath ? nessieGet(env.baseUrl, env.apiKey, customerPath) : Promise.resolve(null),
     nessieGet(env.baseUrl, env.apiKey, `/accounts/${env.accountId}/deposits`),
     nessieGet(env.baseUrl, env.apiKey, `/accounts/${env.accountId}/withdrawals`),
     nessieGet(env.baseUrl, env.apiKey, `/accounts/${env.accountId}/transfers`),
+    nessieGet(env.baseUrl, env.apiKey, `/accounts/${env.accountId}/purchases`),
   ]);
+
+  const deposits = readList('deposits', depositsRes);
+  const withdrawals = readList('withdrawals', withdrawalsRes);
+  const transfers = readList('transfers', transfersRes);
+  const purchases = readList('purchases', purchasesRes);
 
   const name =
     customerRes && customerRes.ok ? customerName(customerRes.json) ?? 'Account' : 'Account';
   const activity = [
-    ...mapActivity(readList('deposits', depositsRes), 'deposit', 1),
-    ...mapActivity(readList('withdrawals', withdrawalsRes), 'withdrawal', -1),
-    ...mapActivity(readList('transfers', transfersRes), 'transfer', -1),
+    ...mapActivity(deposits, 'deposit', 1),
+    ...mapActivity(withdrawals, 'withdrawal', -1),
+    ...mapActivity(transfers, 'transfer', -1),
   ]
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0))
     .slice(0, ACTIVITY_LIMIT)
     .map((row, sortIndex) => ({ ...row, sortIndex }));
+
+  const accountId = typeof account._id === 'string' && account._id ? account._id : env.accountId;
 
   return {
     snapshot: {
       name,
       nickname: nicknameOf(account),
       last4: last4Of(account.account_number, account._id),
-      balance: balanceOf(account.balance),
+      balance: computeAvailableBalance(balanceOf(account.balance), accountId, {
+        deposits: asLedgerRows(deposits),
+        withdrawals: asLedgerRows(withdrawals),
+        purchases: asLedgerRows(purchases),
+        transfers: asLedgerRows(transfers),
+      }),
     },
     activity,
     payees: readSeedPayees(),

@@ -10,14 +10,22 @@ const KEY = "c1mockup.signedIn";
 
 export function isSignedIn(): boolean {
   try {
-    return window.sessionStorage.getItem(KEY) === "1";
+    if (window.localStorage.getItem(KEY) === "1") return true;
+    // Older builds used sessionStorage; keep that session and promote it.
+    if (window.sessionStorage.getItem(KEY) === "1") {
+      window.localStorage.setItem(KEY, "1");
+      window.sessionStorage.removeItem(KEY);
+      return true;
+    }
   } catch {
     return false;
   }
+  return false;
 }
 
 export function signOut(): void {
   try {
+    window.localStorage.removeItem(KEY);
     window.sessionStorage.removeItem(KEY);
   } catch {
     // Storage can be unavailable in private windows; signing out still reloads the page.
@@ -39,7 +47,7 @@ export function Login({ onSignedIn }: { onSignedIn: () => void }) {
       return;
     }
     try {
-      window.sessionStorage.setItem(KEY, "1");
+      window.localStorage.setItem(KEY, "1");
     } catch {
       // Without storage the sign-in simply lasts until the page reloads.
     }

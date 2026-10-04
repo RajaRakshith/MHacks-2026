@@ -1,4 +1,5 @@
 import { tables } from "@watchdog/bindings";
+import { DEMO_USER_ID, liveAvailableBalance, pendingSendActivity } from "@watchdog/core";
 import { router } from "expo-router";
 import { Fragment, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -18,9 +19,16 @@ export default function AccountScreen() {
   const endpoints = useEndpoints();
   const [snapshots, ready] = useTable(tables.accountSnapshot);
   const [activity] = useTable(tables.activity);
+  const [intents] = useTable(tables.transferIntents);
 
   const snapshot = snapshots[0];
-  const recent = useMemo(() => [...activity].sort((a, b) => a.sortIndex - b.sortIndex).slice(0, 10), [activity]);
+  const activityIds = useMemo(() => new Set([...activity].map((row) => row.id)), [activity]);
+  const liveIntents = useMemo(() => [...intents].filter((row) => row.userId === DEMO_USER_ID), [intents]);
+  const balance = snapshot ? liveAvailableBalance(snapshot.balance, liveIntents, activityIds) : 0;
+  const recent = useMemo(
+    () => [...pendingSendActivity(liveIntents, activityIds), ...[...activity].sort((a, b) => a.sortIndex - b.sortIndex)].slice(0, 10),
+    [activity, activityIds, liveIntents],
+  );
 
   return (
     <Screen>
@@ -47,7 +55,7 @@ export default function AccountScreen() {
             </Text>
             <Text style={[styles.balanceLabel, { color: t.muted }]}>Available balance</Text>
             <Text style={[styles.balance, { color: t.ink }]} adjustsFontSizeToFit numberOfLines={1}>
-              {usd(snapshot.balance)}
+              {usd(balance)}
             </Text>
           </View>
         )}

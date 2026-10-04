@@ -80,6 +80,7 @@ describe('nessie account refresh', { concurrency: false }, () => {
           { id: 't-live', transaction_date: '2026-03-03', description: 'Rent', amount: 12.5 },
         ]);
       }
+      if (url.includes('/purchases')) return Response.json([]);
       assert.match(url, /^http:\/\/nessie\.test\/accounts\/acc\?key=k$/);
       return Response.json(ACCOUNT);
     });
@@ -94,7 +95,8 @@ describe('nessie account refresh', { concurrency: false }, () => {
           name: 'Margaret Hale',
           nickname: 'Everyday Checking',
           last4: '1234',
-          balance: 6018,
+          // 6018 + (1+...+21=231) - 60 - 12.5
+          balance: 6176.5,
         });
         assert.equal(result.activity.length, 20);
         assert.deepEqual(result.activity[0], {
@@ -125,11 +127,56 @@ describe('nessie account refresh', { concurrency: false }, () => {
     }
   });
 
+  test('snapshot balance is opening plus live activity, not the frozen Nessie field', async () => {
+    const restore = installFetch((url) => {
+      if (url.includes('/customers/')) return Response.json({ first_name: 'Margaret', last_name: 'Hale' });
+      if (url.includes('/deposits')) {
+        return Response.json([
+          { _id: 'd1', amount: 200, status: 'completed' },
+          { _id: 'd-cancelled', amount: 999, status: 'cancelled' },
+        ]);
+      }
+      if (url.includes('/withdrawals')) {
+        return Response.json([{ _id: 'w1', amount: 50, status: 'completed' }]);
+      }
+      if (url.includes('/transfers')) {
+        return Response.json([
+          { _id: 't-out', amount: 25, status: 'completed' },
+          { _id: 't-in', amount: 40, status: 'completed', payee_id: 'acc' },
+        ]);
+      }
+      if (url.includes('/purchases')) {
+        return Response.json([{ _id: 'p1', amount: 10, status: 'completed' }]);
+      }
+      return Response.json({
+        _id: 'acc',
+        type: 'Checking',
+        nickname: 'Everyday Checking',
+        balance: 1000,
+        account_number: '1234',
+        customer_id: 'cust-1',
+      });
+    });
+    try {
+      const result = await fetchNessieAccount({
+        apiKey: 'k',
+        baseUrl: 'http://nessie.test',
+        accountId: 'acc',
+      });
+      // 1000 + 200 - 50 - 25 + 40 - 10 = 1155. Cancelled 999 is ignored.
+      assert.equal(result.snapshot.balance, 1155);
+    } finally {
+      restore();
+    }
+  });
+
   test('customer GET failure still returns the account as Account', async () => {
     const restore = installFetch((url) => {
       if (url.includes('/customers/')) return new Response('nope', { status: 500 });
       if (url.includes('/deposits')) return new Response('No deposits found for this account', { status: 404 });
-      if (url.includes('/withdrawals') || url.includes('/transfers')) return Response.json([]);
+      if (url.includes('/withdrawals') || url.includes('/transfers') || url.includes('/purchases')) {
+        return Response.json([]);
+      }
       return Response.json({
         _id: 'zzzz9999',
         type: 'Savings',
@@ -157,7 +204,9 @@ describe('nessie account refresh', { concurrency: false }, () => {
     const restore = installFetch((url) => {
       if (url.includes('/customers/')) return Response.json({ first_name: 'A', last_name: 'B' });
       if (url.includes('/deposits')) return new Response('boom', { status: 500 });
-      if (url.includes('/withdrawals') || url.includes('/transfers')) return Response.json([]);
+      if (url.includes('/withdrawals') || url.includes('/transfers') || url.includes('/purchases')) {
+        return Response.json([]);
+      }
       return Response.json(ACCOUNT);
     });
     try {
@@ -173,7 +222,12 @@ describe('nessie account refresh', { concurrency: false }, () => {
   test('payees come from .seed.json and are not invented when it is missing', async () => {
     const restore = installFetch((url) => {
       if (url.includes('/customers/')) return Response.json({ first_name: 'A', last_name: 'B' });
-      if (url.includes('/deposits') || url.includes('/withdrawals') || url.includes('/transfers')) {
+      if (
+        url.includes('/deposits') ||
+        url.includes('/withdrawals') ||
+        url.includes('/transfers') ||
+        url.includes('/purchases')
+      ) {
         return Response.json([]);
       }
       return Response.json(ACCOUNT);
@@ -290,7 +344,9 @@ describe('nessie account refresh', { concurrency: false }, () => {
           { _id: 'd1', transaction_date: '2026-04-04', description: 'Social Security', amount: 1650 },
         ]);
       }
-      if (url.includes('/withdrawals') || url.includes('/transfers')) return Response.json([]);
+      if (url.includes('/withdrawals') || url.includes('/transfers') || url.includes('/purchases')) {
+        return Response.json([]);
+      }
       return Response.json(ACCOUNT);
     });
     const calls: { name: string; args: unknown }[] = [];
@@ -322,7 +378,7 @@ describe('nessie account refresh', { concurrency: false }, () => {
             name: 'Margaret Hale',
             nickname: 'Everyday Checking',
             last4: '1234',
-            balance: 6018,
+            balance: 7668,
           },
         },
         {
