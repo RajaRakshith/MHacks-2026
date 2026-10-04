@@ -10,7 +10,7 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       systemInstruction: {
-        parts: [{ text: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only.` }],
+        parts: [{ text: `You are ScamShield, a fraud analyst scoring a live phone call transcript for scam risk.\n${SCORING_GUIDE}\nReturn JSON only. Required JSON keys: score (0-100 integer), signals (from the known list), action, warning, evidence.` }],
       },
       contents: [{
         role: 'user',
@@ -24,5 +24,9 @@ export async function scoreWithGemini(transcript, prevScore = 0) {
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!text) throw new Error('Gemini response missing text');
-  return normalizeRisk(JSON.parse(text));
+  const parsed = JSON.parse(text);
+  if (parsed == null || typeof parsed.score !== 'number' || !Number.isFinite(parsed.score)) {
+    throw new Error('Gemini response missing score');
+  }
+  return normalizeRisk(parsed);
 }

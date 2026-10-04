@@ -26,11 +26,3 @@ export async function playScamWarning(session, { force = false } = {}) {
     throw err;
   }
 }
-
-/**
- * Called when the future call-score / scam-detection pipeline fires.
- * Wire your scorer to call this — do not implement scoring here yet.
- */
-export async function onScamDetected(session, _details = {}) {
-  return playScamWarning(session);
-}

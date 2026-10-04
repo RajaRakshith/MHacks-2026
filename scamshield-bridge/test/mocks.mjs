@@ -1,4 +1,4 @@
-// Shared mocks: one HTTP server playing ElevenLabs STT, xAI chat, and SpacetimeDB; a fake Twilio client.
+// Shared mocks: one HTTP server playing Gemini scoring, leftover ElevenLabs STT and xAI chat routes (so fail-loud tests can assert they were not called), and SpacetimeDB; a fake Twilio client.
 import http from 'node:http';
 import { WebSocketServer, WebSocket } from 'ws';
 
@@ -23,11 +23,14 @@ export function mockHttp(port, { chatScore = 88, geminiScore = 94 } = {}) {
       } else if (String(req.url).includes(':generateContent')) {
         calls.push(['gemini', buf.toString()]);
         if (geminiScore == null) { res.writeHead(503); return res.end('down'); }
-        res.end(JSON.stringify({
-          candidates: [{ content: { parts: [{ text: JSON.stringify({
+        const payload = typeof geminiScore === 'object'
+          ? geminiScore
+          : {
             score: geminiScore, signals: ['impersonation', 'otp_request'], action: 'hold_transfers',
             warning: 'DO NOT SHARE THE CODE', evidence: 'read me the code',
-          }) }] } }],
+          };
+        res.end(JSON.stringify({
+          candidates: [{ content: { parts: [{ text: JSON.stringify(payload) }] } }],
         }));
       } else if (req.url.startsWith('/v1/text-to-speech/')) {
         calls.push(['tts', req.url]);

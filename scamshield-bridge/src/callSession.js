@@ -53,18 +53,18 @@ export class CallSession {
     const log = (...a) => this.log(...a);
     return createGrokEngine({
       log,
-      onTranscript: (text) => this.addTranscript(text, {}),
+      onTranscript: (text) => this.addTranscript(text),
       onFail: (reason) => this.log(`grok failed: ${reason}`),
     });
   }
 
-  addTranscript(text, { endMs = this.nowMs(), speakerText = '' }) {
+  addTranscript(text) {
     const seq = this.seq++;
-    this.lines.push(speakerText || text);
+    this.lines.push(text);
     const source = this.engine?.name ?? 'grok';
     this.log(`#${seq} [${source}] transcript: ${text}`);
     this.db('append_transcript_segment', (id) =>
-      appendTranscriptSegment(id, { text: speakerText || text, source, isFinal: true }));
+      appendTranscriptSegment(id, { text, source, isFinal: true }));
     this.scoreLatest();
   }
 

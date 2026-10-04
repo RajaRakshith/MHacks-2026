@@ -21,14 +21,12 @@ check('user payload has previous score and full transcript',
   body.contents[0].parts[0].text.includes('20') && body.contents[0].parts[0].text.includes(transcript),
   body.contents[0].parts[0].text);
 check('asks for JSON', body.generationConfig.responseMimeType === 'application/json', body.generationConfig);
+check('system prompt lists required JSON keys',
+  /Required JSON keys: score \(0-100 integer\), signals \(from the known list\), action, warning, evidence/.test(
+    body.systemInstruction.parts[0].text),
+  body.systemInstruction);
 check('normalized score 94 + otp signal',
   risk.score === 94 && risk.signals.includes('otp_request') && risk.action === 'hold_transfers', risk);
-
-try {
-  await scoreWithGemini(transcript, 20);
-} catch {
-  /* first call already used; reopen below */
-}
 http.close();
 
 const down = mockHttp(9402, { geminiScore: null });
@@ -41,6 +39,19 @@ try {
 }
 check('non-2xx throws (no fake score)', threw, threw);
 down.close();
+
+const bad = mockHttp(9403, { geminiScore: { risk_score: 94 } });
+process.env.GEMINI_BASE_URL = 'http://localhost:9403';
+let missingScore = null;
+try {
+  missingScore = await scoreWithGemini(transcript, 0);
+} catch (e) {
+  missingScore = e;
+}
+check('malformed Gemini JSON without numeric score throws (no fake 0)',
+  missingScore instanceof Error && missingScore.message.includes('Gemini response missing score'),
+  missingScore instanceof Error ? missingScore.message : missingScore);
+bad.close();
 
 delete process.env.GEMINI_API_KEY;
 let missing = false;

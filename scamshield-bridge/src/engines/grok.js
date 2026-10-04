@@ -30,7 +30,7 @@ export function createGrokEngine({ log, onTranscript, onFail }) {
     clearTimeout(connectTimer);
     flushAll();
     try { ws?.terminate(); } catch {}
-    onFail(reason, pendingAudio.splice(0));
+    onFail(reason);
   }
 
   ws.on('open', () => {
