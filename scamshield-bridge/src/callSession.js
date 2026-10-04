@@ -1,21 +1,16 @@
 // One Twilio Media Stream connection = one CallSession.
 //
-//   Twilio audio ──▶ engine ──▶ transcripts + risk ──▶ SpacetimeDB (../spacetimedb module)
+//   Twilio audio ──▶ Grok STT ──▶ Gemini ──▶ SpacetimeDB
 //
-// Engine is Grok Voice by default. If Grok fails (can't connect, errors, drops mid-call)
-// the session switches to ElevenLabs for the rest of the call; transcripts from ElevenLabs
-// are then risk-scored by Grok's text API (or a keyword heuristic if that's down too).
-// The risk score carries across the switch.
-//
-// When risk reaches TTS_WARNING_SCORE, ElevenLabs TTS speaks a one-time warning into the call
-// (the only audio we ever send back to Twilio — Grok's own audio is always discarded).
+// Grok Voice only transcribes. Each flushed transcript is scored by Gemini.
+// ElevenLabs TTS is the only audio sent back to Twilio, once risk reaches TTS_WARNING_SCORE.
 
 import { createGrokEngine } from './engines/grok.js';
-import { createElevenLabsEngine } from './engines/elevenlabs.js';
-import { scoreTranscript } from './risk.js';
+import { scoreWithGemini } from './gemini.js';
 import { startCallSession, appendTranscriptSegment, recordRiskEvent, endCallSession } from './spacetime.js';
 import { playScamWarning } from './integration.js';
-import { SAMPLE_RATE } from './audio.js';
+
+const SAMPLE_RATE = 8000;
 
 export const activeSessions = new Map(); // callSid -> CallSession (for /health)
 
@@ -34,7 +29,7 @@ export class CallSession {
     this.audioBytes = 0;    // call clock: 8000 mu-law bytes == 1s
     this.dbQueue = Promise.resolve(); // reducer calls stay in order (start -> chunks -> end)
     this.scoreQueue = Promise.resolve();
-    this.engine = this.startEngine(process.env.STT_ENGINE === 'elevenlabs' ? 'elevenlabs' : 'grok');
+    this.engine = this.startEngine('grok');
 
     twilioWs.on('message', (raw) => this.onTwilioMessage(raw));
     twilioWs.on('close', () => this.end());
@@ -54,35 +49,13 @@ export class CallSession {
     return this.dbQueue;
   }
 
-  startEngine(name, { startOffsetMs = 0 } = {}) {
+  startEngine() {
     const log = (...a) => this.log(...a);
-    if (name === 'grok') {
-      return createGrokEngine({
-        log,
-        onTranscript: (text) => this.addTranscript(text, {}),
-        onRisk: (risk, source) => this.setRisk(risk, source),
-        onFail: (reason, unsentAudio) => this.failover(reason, unsentAudio),
-      });
-    }
-    return createElevenLabsEngine({
+    return createGrokEngine({
       log,
-      startOffsetMs,
-      onTranscript: (text, timing) => {
-        this.addTranscript(text, timing);
-        return this.scoreLatest();
-      },
+      onTranscript: (text) => this.addTranscript(text, {}),
+      onFail: (reason) => this.log(`grok failed: ${reason}`),
     });
-  }
-
-  failover(reason, unsentAudio) {
-    if (this.ended) return;
-    if (process.env.FAILOVER === 'false') { this.log(`grok failed (${reason}); FAILOVER=false, no transcription`); return; }
-    if (!process.env.ELEVENLABS_API_KEY) this.log('WARNING: failing over but ELEVENLABS_API_KEY is not set');
-    const unsentBytes = unsentAudio.reduce((n, p) => n + Buffer.byteLength(p, 'base64'), 0);
-    const unsentMs = Math.round((unsentBytes / SAMPLE_RATE) * 1000);
-    this.log(`grok failed (${reason}) -> failing over to elevenlabs`);
-    this.engine = this.startEngine('elevenlabs', { startOffsetMs: Math.max(0, this.nowMs() - unsentMs) });
-    for (const p of unsentAudio) this.engine.pushAudio(p);
   }
 
   addTranscript(text, { endMs = this.nowMs(), speakerText = '' }) {
@@ -92,6 +65,7 @@ export class CallSession {
     this.log(`#${seq} [${source}] transcript: ${text}`);
     this.db('append_transcript_segment', (id) =>
       appendTranscriptSegment(id, { text: speakerText || text, source, isFinal: true }));
+    this.scoreLatest();
   }
 
   setRisk(risk, source) {
@@ -113,12 +87,14 @@ export class CallSession {
     playScamWarning(this).catch((e) => this.log('tts warning failed:', e.message));
   }
 
-  // Used on the ElevenLabs path: re-score the whole call with Grok text after each new chunk.
   scoreLatest() {
     this.scoreQueue = this.scoreQueue.then(async () => {
-      const risk = await scoreTranscript(this.lines.join('\n'), this.lastScore);
-      const source = risk.evidence.startsWith('heuristic') ? 'heuristic' : 'grok-text';
-      await this.setRisk(risk, source);
+      try {
+        const risk = await scoreWithGemini(this.lines.join('\n'), this.lastScore);
+        await this.setRisk(risk, 'gemini');
+      } catch (e) {
+        this.log(`gemini failed: ${e.message}`);
+      }
     });
     return this.scoreQueue;
   }

@@ -1,28 +1,12 @@
-// Primary engine: Grok Voice (xAI realtime).
-// Grok gets the raw call audio (mu-law, no conversion), transcribes it live,
-// and calls report_risk() as the conversation evolves. Its spoken audio is
-// NEVER forwarded to Twilio, so it physically cannot talk on the call.
-//
-// If the socket can't connect, errors, or drops mid-call, onFail() is called once
-// with any audio Grok never received, and the session fails over to ElevenLabs.
+// Grok Voice is STT only; spoken audio is never forwarded to Twilio; if the socket dies, `onFail(reason)` is called once and the caller must not fail over.
 
 import WebSocket from 'ws';
-import { SCORING_GUIDE, RISK_SCHEMA, normalizeRisk } from '../risk.js';
 
 const FLUSH_IDLE_MS = 1500; // write a transcript once it stops changing for this long
 
-const INSTRUCTIONS = `You are ScamShield, a silent fraud analyst listening to a live phone call between a possible scammer and a potential victim. You are NOT a participant: never greet, answer, or address anyone.
-After every turn, call report_risk exactly once with your updated assessment of the WHOLE call so far.
-${SCORING_GUIDE}`;
+const INSTRUCTIONS = `You are ScamShield's silent transcriber on a live phone call. You are NOT a participant: never greet, answer, or address anyone. Do not call tools.`;
 
-const REPORT_RISK_TOOL = {
-  type: 'function',
-  name: 'report_risk',
-  description: 'Report the current scam risk assessment for the call.',
-  parameters: { ...RISK_SCHEMA, required: ['score', 'signals', 'action', 'warning'] },
-};
-
-export function createGrokEngine({ log, onTranscript, onRisk, onFail }) {
+export function createGrokEngine({ log, onTranscript, onFail }) {
   const url = process.env.XAI_REALTIME_URL ||
     `wss://api.x.ai/v1/realtime?model=${process.env.XAI_MODEL || 'grok-voice-latest'}`;
   const connectTimeoutMs = Number(process.env.GROK_CONNECT_TIMEOUT_MS || 5000);
@@ -65,7 +49,6 @@ export function createGrokEngine({ log, onTranscript, onRisk, onFail }) {
           },
           output: { format: { type: 'audio/pcmu' } }, // discarded
         },
-        tools: [REPORT_RISK_TOOL],
       },
     }));
     ready = true;
@@ -108,20 +91,6 @@ export function createGrokEngine({ log, onTranscript, onRisk, onFail }) {
         clearTimeout(it.timer);
         if (ev.type.endsWith('.completed')) flushItem(id);
         else it.timer = setTimeout(() => flushItem(id), FLUSH_IDLE_MS);
-        break;
-      }
-
-      // Grok's risk assessment.
-      case 'response.function_call_arguments.done': {
-        if (ev.name !== 'report_risk') break;
-        let a;
-        try { a = JSON.parse(ev.arguments); } catch { log('bad tool args', ev.arguments); break; }
-        onRisk(normalizeRisk(a), 'grok-voice');
-        // Acknowledge the tool call. Deliberately NO response.create — we don't want Grok to keep talking.
-        ws.send(JSON.stringify({
-          type: 'conversation.item.create',
-          item: { type: 'function_call_output', call_id: ev.call_id, output: '{"ok":true}' },
-        }));
         break;
       }
 

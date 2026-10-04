@@ -55,7 +55,12 @@ export function mockGrok(port, onMessage) {
   const wss = new WebSocketServer({ port });
   wss.on('connection', (ws, req) => {
     got.push('auth=' + req.headers.authorization);
-    ws.on('message', (m) => { const ev = JSON.parse(m); got.push(ev.type); onMessage?.(ws, ev, got); });
+    ws.on('message', (m) => {
+      const ev = JSON.parse(m);
+      got.push(ev.type);
+      if (ev.type === 'session.update') got.push(JSON.stringify(ev.session));
+      onMessage?.(ws, ev, got);
+    });
   });
   return { got, close: () => wss.close() };
 }
