@@ -70,7 +70,7 @@ Existing reducers stay: `start_call_session`, `end_call_session`, `update_risk_s
 
 ### `worker/`
 
-Two jobs, both fail-stop:
+Three jobs, all fail-stop:
 
 1. **Refresh.** On startup and again after `complete_transfer` or `fail_transfer`, GET the Nessie account (`NESSIE_ACCOUNT_ID`), customer name, and recent deposits / withdrawals / transfers. Upsert snapshot, activity, and payees. Adapt the existing fetch in `spacetime/src/nessie.ts` / `packages/core` into the worker as Node `fetch` (the worker does not use Spacetime `ctx.http`). Do not call Nessie from the browser or from a Spacetime procedure in this merge. No periodic timer and no UI-triggered refresh in this merge.
 2. **Execute.** Subscribe to `transfer_intents` with status Approved. POST to Nessie. Success → `complete_transfer` and refresh snapshot. Failure → `fail_transfer` with the API error.
